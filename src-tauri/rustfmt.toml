@@ -1,0 +1,34 @@
+# MindLink Rust Formatting Configuration
+# Enterprise-grade formatting standards for production code (Stable Rust Compatible)
+
+# Code structure and organization
+edition = "2021"
+max_width = 100
+hard_tabs = false
+tab_spaces = 4
+
+# Import formatting (stable features only)
+reorder_imports = true
+
+# Function and method formatting
+fn_params_layout = "Tall"
+
+# Expression formatting
+short_array_element_width_threshold = 10
+
+# Type and generic formatting
+use_small_heuristics = "Default"
+
+# Match expression formatting
+match_block_trailing_comma = true
+match_arm_leading_pipes = "Never"
+
+# Derive formatting
+merge_derives = true
+
+# Newlines and formatting
+newline_style = "Unix"
+
+# Note: Many advanced formatting options require nightly Rust
+# For production use with stable Rust, we use these conservative settings
+# To enable advanced formatting, use: rustup default nightly && cargo +nightly fmt

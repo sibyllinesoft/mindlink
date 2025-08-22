@@ -1,0 +1,98 @@
+[package]
+name = "mindlink"
+version = "1.0.0"
+description = "Local LLM API bridge with Cloudflare tunneling"
+authors = ["Nathan"]
+license = "MIT"
+repository = ""
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon", "devtools"] }
+tauri-plugin-shell = "2"
+tauri-plugin-notification = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-http = "2"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.0", features = ["full"] }
+reqwest = { version = "0.11", features = ["json"] }
+uuid = { version = "1.0", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+anyhow = "1.0"
+dirs = "5.0"
+env_logger = "0.10"
+log = "0.4"
+regex = "1.0"
+axum = "0.7"
+base64 = "0.22"
+sha2 = "0.10"
+rand = "0.8"
+url = "2.0"
+thiserror = "1.0"
+futures = "0.3"
+async-stream = "0.3"
+tower = "0.4"
+tower-http = { version = "0.5", features = ["fs", "cors"] }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[features]
+# This feature is used for production builds or when a dev server is not specified, DO NOT REMOVE!!
+custom-protocol = ["tauri/custom-protocol"]
+
+# Enterprise-grade linting configuration for production code quality
+[lints.rust]
+# Deny all warnings - zero tolerance for warnings in production
+warnings = "deny"
+# Memory safety and performance lints
+unsafe_code = "deny"
+unused_imports = "deny"
+unused_variables = "deny"
+unused_mut = "deny"
+dead_code = "deny"
+unreachable_code = "deny"
+# Code quality lints
+missing_docs = "warn"
+missing_debug_implementations = "warn"
+missing_copy_implementations = "warn"
+trivial_casts = "deny"
+trivial_numeric_casts = "deny"
+# Style and consistency lints
+non_ascii_idents = "deny"
+non_snake_case = "deny"
+non_camel_case_types = "deny"
+non_upper_case_globals = "deny"
+
+[lints.clippy]
+# Pedantic lints for enterprise code quality
+pedantic = "deny"
+# Nursery lints for cutting-edge best practices
+nursery = "deny" 
+# Restriction lints for additional safety
+restriction = "warn"
+# Performance lints
+perf = "deny"
+# Correctness lints
+correctness = "deny"
+# Style lints
+style = "deny"
+# Complexity lints
+complexity = "deny"
+# Suspicious code patterns
+suspicious = "deny"
+
+# Allow specific clippy lints that may be too restrictive for our use case
+# (These can be adjusted based on project needs)
+too_many_lines = "allow"
+missing_errors_doc = "allow"  # We use MindLinkError consistently
+missing_panics_doc = "allow"  # We're eliminating panics
+module_name_repetitions = "allow"  # Common in Rust modules
+similar_names = "allow"  # Sometimes necessary for clarity

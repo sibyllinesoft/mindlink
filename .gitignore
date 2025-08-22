@@ -1,0 +1,61 @@
+# Build outputs
+dist/
+build/
+target/
+src-tauri/target/
+
+# Dependencies
+node_modules/
+
+# Environment and config
+.env
+.env.local
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.swp
+*.swo
+*~
+
+# MindLink specific
+.mindlink/
+auth.json
+*.key
+
+# Claude Code temporary files and backups
+.claude-temp/
+.claude-temp-backup/
+
+# Agent artifacts and session files
+*-verification.log
+*-test-results.json
+session-*.log
+
+# Binary artifacts
+binaries/
+*.AppImage
+*.deb
+*.rpm
+*.dmg
+*.msi
+
+# Update keys
+.updater-keys/
+
+# Test outputs
+coverage/
+test-results/
+
+.serena/

@@ -1,0 +1,14 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=MindLink
+GenericName=Local LLM Router
+Comment=OpenAI-compatible API server with Cloudflare tunneling
+Exec=mindlink
+Icon=mindlink
+Terminal=false
+Categories=Development;Network;Utility;
+Keywords=llm;chatgpt;openai;api;tunnel;cloudflare;
+StartupNotify=true
+StartupWMClass=MindLink
+MimeType=application/x-mindlink;
