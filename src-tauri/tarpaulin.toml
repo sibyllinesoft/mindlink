@@ -1,0 +1,82 @@
+# Tarpaulin Configuration for Code Coverage Reporting
+# This file configures coverage collection for the MindLink Rust application
+
+[config.default]
+# Include all relevant source files for coverage
+include = [
+    "src/**/*.rs"
+]
+
+# Exclude test files and binaries from coverage calculations
+exclude = [
+    "src/tests/**/*",
+    "src/main.rs",
+    "tests/**/*",
+    "build.rs",
+    # Exclude generated code and external dependencies
+    "target/**/*",
+    ".cargo/**/*"
+]
+
+# Target minimum coverage thresholds
+target-coverage = 80.0
+
+# Coverage reporting format configuration
+out = ["Html", "Xml", "Json"]
+
+# Performance and reliability settings
+timeout = 120
+run-types = ["Tests"]
+follow-exec = true
+post-args = ["--", "--test-threads=1"]
+
+# Advanced options for better coverage accuracy
+count = true
+line = true
+branch = true
+
+# Exclude specific functions that shouldn't be covered
+exclude-functions = [
+    # Entry points that are hard to test in isolation
+    "main",
+    # Test helper functions
+    "*test*",
+    # Debug implementations
+    "*fmt*",
+    # Panic handlers and error display functions  
+    "*panic*",
+    "*display*"
+]
+
+# Configure output directory structure
+output-dir = "coverage"
+
+# Engine configuration for better performance
+engine = "Llvm"
+
+[config.ci]
+# CI-specific configuration with stricter requirements
+target-coverage = 85.0
+fail-under = 80.0
+timeout = 180
+
+# More comprehensive reporting for CI
+out = ["Html", "Xml", "Json", "Stdout"]
+verbose = true
+
+# CI-optimized settings
+run-types = ["Tests", "Doctests"]
+release = false
+debug = true
+
+[config.dev]
+# Development configuration for faster local coverage
+target-coverage = 70.0
+timeout = 60
+out = ["Html"]
+verbose = false
+
+# Faster execution for development
+follow-exec = false
+count = false
+branch = false

@@ -1,4 +1,6 @@
 // Comprehensive error handling types for MindLink application
+
+#![allow(missing_docs)]
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -8,83 +10,83 @@ use thiserror::Error;
 #[serde(tag = "type", content = "details")]
 pub enum MindLinkError {
     #[error("Authentication failed: {message}")]
-    Authentication { 
+    Authentication {
         message: String,
         #[serde(skip)]
         source: Option<anyhow::Error>,
     },
-    
+
     #[error("Network connection failed: {message}")]
-    Network { 
+    Network {
         message: String,
         url: Option<String>,
         #[serde(skip)]
         source: Option<anyhow::Error>,
     },
-    
+
     #[error("Binary not found or failed to start: {message}")]
-    BinaryExecution { 
+    BinaryExecution {
         message: String,
         binary_name: String,
         binary_path: Option<String>,
         #[serde(skip)]
         source: Option<anyhow::Error>,
     },
-    
+
     #[error("Configuration error: {message}")]
-    Configuration { 
+    Configuration {
         message: String,
         config_key: Option<String>,
         #[serde(skip)]
         source: Option<anyhow::Error>,
     },
-    
+
     #[error("File system operation failed: {message}")]
-    FileSystem { 
+    FileSystem {
         message: String,
         path: Option<String>,
         operation: String,
         #[serde(skip)]
         source: Option<anyhow::Error>,
     },
-    
+
     #[error("Process monitoring failed: {message}")]
-    ProcessMonitoring { 
+    ProcessMonitoring {
         message: String,
         process_name: String,
         pid: Option<u32>,
         #[serde(skip)]
         source: Option<anyhow::Error>,
     },
-    
+
     #[error("Service health check failed: {message}")]
-    HealthCheck { 
+    HealthCheck {
         message: String,
         service_name: String,
         url: Option<String>,
         #[serde(skip)]
         source: Option<anyhow::Error>,
     },
-    
+
     #[error("Tunnel operation failed: {message}")]
-    Tunnel { 
+    Tunnel {
         message: String,
         tunnel_type: Option<String>,
         local_port: Option<u16>,
         #[serde(skip)]
         source: Option<anyhow::Error>,
     },
-    
+
     #[error("System resource unavailable: {message}")]
-    SystemResource { 
+    SystemResource {
         message: String,
         resource_type: String,
         #[serde(skip)]
         source: Option<anyhow::Error>,
     },
-    
+
     #[error("Internal application error: {message}")]
-    Internal { 
+    Internal {
         message: String,
         component: Option<String>,
         #[serde(skip)]
@@ -101,73 +103,96 @@ impl Clone for MindLinkError {
                     source: None, // Don't clone the source as anyhow::Error doesn't implement Clone
                 }
             },
-            MindLinkError::Network { message, url, source: _ } => {
-                MindLinkError::Network {
-                    message: message.clone(),
-                    url: url.clone(),
-                    source: None,
-                }
+            MindLinkError::Network {
+                message,
+                url,
+                source: _,
+            } => MindLinkError::Network {
+                message: message.clone(),
+                url: url.clone(),
+                source: None,
             },
-            MindLinkError::BinaryExecution { message, binary_name, binary_path, source: _ } => {
-                MindLinkError::BinaryExecution {
-                    message: message.clone(),
-                    binary_name: binary_name.clone(),
-                    binary_path: binary_path.clone(),
-                    source: None,
-                }
+            MindLinkError::BinaryExecution {
+                message,
+                binary_name,
+                binary_path,
+                source: _,
+            } => MindLinkError::BinaryExecution {
+                message: message.clone(),
+                binary_name: binary_name.clone(),
+                binary_path: binary_path.clone(),
+                source: None,
             },
-            MindLinkError::Configuration { message, config_key, source: _ } => {
-                MindLinkError::Configuration {
-                    message: message.clone(),
-                    config_key: config_key.clone(),
-                    source: None,
-                }
+            MindLinkError::Configuration {
+                message,
+                config_key,
+                source: _,
+            } => MindLinkError::Configuration {
+                message: message.clone(),
+                config_key: config_key.clone(),
+                source: None,
             },
-            MindLinkError::FileSystem { message, path, operation, source: _ } => {
-                MindLinkError::FileSystem {
-                    message: message.clone(),
-                    path: path.clone(),
-                    operation: operation.clone(),
-                    source: None,
-                }
+            MindLinkError::FileSystem {
+                message,
+                path,
+                operation,
+                source: _,
+            } => MindLinkError::FileSystem {
+                message: message.clone(),
+                path: path.clone(),
+                operation: operation.clone(),
+                source: None,
             },
-            MindLinkError::ProcessMonitoring { message, process_name, pid, source: _ } => {
-                MindLinkError::ProcessMonitoring {
-                    message: message.clone(),
-                    process_name: process_name.clone(),
-                    pid: *pid,
-                    source: None,
-                }
+            MindLinkError::ProcessMonitoring {
+                message,
+                process_name,
+                pid,
+                source: _,
+            } => MindLinkError::ProcessMonitoring {
+                message: message.clone(),
+                process_name: process_name.clone(),
+                pid: *pid,
+                source: None,
             },
-            MindLinkError::HealthCheck { message, service_name, url, source: _ } => {
-                MindLinkError::HealthCheck {
-                    message: message.clone(),
-                    service_name: service_name.clone(),
-                    url: url.clone(),
-                    source: None,
-                }
+            MindLinkError::HealthCheck {
+                message,
+                service_name,
+                url,
+                source: _,
+            } => MindLinkError::HealthCheck {
+                message: message.clone(),
+                service_name: service_name.clone(),
+                url: url.clone(),
+                source: None,
             },
-            MindLinkError::Tunnel { message, tunnel_type, local_port, source: _ } => {
-                MindLinkError::Tunnel {
-                    message: message.clone(),
-                    tunnel_type: tunnel_type.clone(),
-                    local_port: *local_port,
-                    source: None,
-                }
+            MindLinkError::Tunnel {
+                message,
+                tunnel_type,
+                local_port,
+                source: _,
+            } => MindLinkError::Tunnel {
+                message: message.clone(),
+                tunnel_type: tunnel_type.clone(),
+                local_port: *local_port,
+                source: None,
             },
-            MindLinkError::SystemResource { message, resource_type, source: _ } => {
-                MindLinkError::SystemResource {
-                    message: message.clone(),
-                    resource_type: resource_type.clone(),
-                    source: None,
-                }
+            MindLinkError::SystemResource {
+                message,
+                resource_type,
+                source: _,
+            } => MindLinkError::SystemResource {
+                message: message.clone(),
+                resource_type: resource_type.clone(),
+                source: None,
             },
-            MindLinkError::Internal { message, component, source: _ } => {
-                MindLinkError::Internal {
-                    message: message.clone(),
-                    component: component.clone(),
-                    source: None,
-                }
+            MindLinkError::Internal {
+                message,
+                component,
+                source: _,
+            } => MindLinkError::Internal {
+                message: message.clone(),
+                component: component.clone(),
+                source: None,
             },
         }
     }
@@ -179,123 +204,153 @@ impl MindLinkError {
         match self {
             MindLinkError::Authentication { message, .. } => {
                 format!("Authentication Error: {}", message)
-            }
-            MindLinkError::Network { message, url, .. } => {
-                match url {
-                    Some(url) => format!("Connection failed to {}: {}", url, message),
-                    None => format!("Network Error: {}", message),
-                }
-            }
-            MindLinkError::BinaryExecution { message, binary_name, .. } => {
-                format!("Program Error: {} failed to start - {}", binary_name, message)
-            }
-            MindLinkError::Configuration { message, config_key, .. } => {
-                match config_key {
-                    Some(key) => format!("Configuration Error: Issue with '{}' - {}", key, message),
-                    None => format!("Configuration Error: {}", message),
-                }
-            }
-            MindLinkError::FileSystem { message, operation, .. } => {
+            },
+            MindLinkError::Network { message, url, .. } => match url {
+                Some(url) => format!("Connection failed to {}: {}", url, message),
+                None => format!("Network Error: {}", message),
+            },
+            MindLinkError::BinaryExecution {
+                message,
+                binary_name,
+                ..
+            } => {
+                format!(
+                    "Program Error: {} failed to start - {}",
+                    binary_name, message
+                )
+            },
+            MindLinkError::Configuration {
+                message,
+                config_key,
+                ..
+            } => match config_key {
+                Some(key) => format!("Configuration Error: Issue with '{}' - {}", key, message),
+                None => format!("Configuration Error: {}", message),
+            },
+            MindLinkError::FileSystem {
+                message, operation, ..
+            } => {
                 format!("File Error: Failed to {} - {}", operation, message)
-            }
-            MindLinkError::ProcessMonitoring { message, process_name, .. } => {
-                format!("Service Error: {} monitoring failed - {}", process_name, message)
-            }
-            MindLinkError::HealthCheck { message, service_name, .. } => {
-                format!("Service Health: {} is not responding - {}", service_name, message)
-            }
+            },
+            MindLinkError::ProcessMonitoring {
+                message,
+                process_name,
+                ..
+            } => {
+                format!(
+                    "Service Error: {} monitoring failed - {}",
+                    process_name, message
+                )
+            },
+            MindLinkError::HealthCheck {
+                message,
+                service_name,
+                ..
+            } => {
+                format!(
+                    "Service Health: {} is not responding - {}",
+                    service_name, message
+                )
+            },
             MindLinkError::Tunnel { message, .. } => {
                 format!("Tunnel Error: {}", message)
-            }
-            MindLinkError::SystemResource { message, resource_type, .. } => {
+            },
+            MindLinkError::SystemResource {
+                message,
+                resource_type,
+                ..
+            } => {
                 format!("System Error: {} unavailable - {}", resource_type, message)
-            }
-            MindLinkError::Internal { message, component, .. } => {
-                match component {
-                    Some(comp) => format!("Internal Error in {}: {}", comp, message),
-                    None => format!("Internal Error: {}", message),
-                }
-            }
+            },
+            MindLinkError::Internal {
+                message, component, ..
+            } => match component {
+                Some(comp) => format!("Internal Error in {}: {}", comp, message),
+                None => format!("Internal Error: {}", message),
+            },
         }
     }
-    
+
     /// Get technical details for logging (includes source error chain)
     pub fn technical_details(&self) -> String {
         let base_message = self.to_string();
-        
+
         // For now, just return the base message to avoid type complexity
         // The anyhow source chain is complex to traverse due to type issues
         base_message
     }
-    
+
     /// Get the source error if available
     pub fn source(&self) -> Option<&anyhow::Error> {
         match self {
-            MindLinkError::Authentication { source, .. } |
-            MindLinkError::Network { source, .. } |
-            MindLinkError::BinaryExecution { source, .. } |
-            MindLinkError::Configuration { source, .. } |
-            MindLinkError::FileSystem { source, .. } |
-            MindLinkError::ProcessMonitoring { source, .. } |
-            MindLinkError::HealthCheck { source, .. } |
-            MindLinkError::Tunnel { source, .. } |
-            MindLinkError::SystemResource { source, .. } |
-            MindLinkError::Internal { source, .. } => source.as_ref(),
+            MindLinkError::Authentication { source, .. }
+            | MindLinkError::Network { source, .. }
+            | MindLinkError::BinaryExecution { source, .. }
+            | MindLinkError::Configuration { source, .. }
+            | MindLinkError::FileSystem { source, .. }
+            | MindLinkError::ProcessMonitoring { source, .. }
+            | MindLinkError::HealthCheck { source, .. }
+            | MindLinkError::Tunnel { source, .. }
+            | MindLinkError::SystemResource { source, .. }
+            | MindLinkError::Internal { source, .. } => source.as_ref(),
         }
     }
-    
+
     /// Check if this error is recoverable (user can retry)
     pub fn is_recoverable(&self) -> bool {
         match self {
-            MindLinkError::Authentication { .. } => true,  // User can re-login
-            MindLinkError::Network { .. } => true,         // Network may recover
+            MindLinkError::Authentication { .. } => true, // User can re-login
+            MindLinkError::Network { .. } => true,        // Network may recover
             MindLinkError::BinaryExecution { .. } => false, // Binary issues need fixing
-            MindLinkError::Configuration { .. } => false,   // Config needs to be fixed
-            MindLinkError::FileSystem { .. } => true,       // File operations can be retried
+            MindLinkError::Configuration { .. } => false, // Config needs to be fixed
+            MindLinkError::FileSystem { .. } => true,     // File operations can be retried
             MindLinkError::ProcessMonitoring { .. } => true, // Process can be restarted
-            MindLinkError::HealthCheck { .. } => true,      // Service may recover
-            MindLinkError::Tunnel { .. } => true,           // Tunnels can be recreated
-            MindLinkError::SystemResource { .. } => true,   // Resources may become available
-            MindLinkError::Internal { .. } => false,        // Internal errors need investigation
+            MindLinkError::HealthCheck { .. } => true,    // Service may recover
+            MindLinkError::Tunnel { .. } => true,         // Tunnels can be recreated
+            MindLinkError::SystemResource { .. } => true, // Resources may become available
+            MindLinkError::Internal { .. } => false,      // Internal errors need investigation
         }
     }
-    
+
     /// Get suggested action for the user
     pub fn suggested_action(&self) -> Option<String> {
         match self {
             MindLinkError::Authentication { .. } => {
                 Some("Please try logging in again or check your credentials.".to_string())
-            }
+            },
             MindLinkError::Network { .. } => {
                 Some("Check your internet connection and try again.".to_string())
-            }
-            MindLinkError::BinaryExecution { binary_name, .. } => {
-                Some(format!("Please reinstall {} or contact support.", binary_name))
-            }
-            MindLinkError::Configuration { config_key, .. } => {
-                match config_key {
-                    Some(key) => Some(format!("Please check your {} configuration setting.", key)),
-                    None => Some("Please check your application settings.".to_string()),
-                }
-            }
-            MindLinkError::FileSystem { operation, .. } => {
-                Some(format!("Please ensure you have permission to {} files and try again.", operation))
-            }
-            MindLinkError::ProcessMonitoring { process_name, .. } => {
-                Some(format!("Restart {} service or contact support if the problem persists.", process_name))
-            }
-            MindLinkError::HealthCheck { service_name, .. } => {
-                Some(format!("Restart the {} service and try again.", service_name))
-            }
+            },
+            MindLinkError::BinaryExecution { binary_name, .. } => Some(format!(
+                "Please reinstall {} or contact support.",
+                binary_name
+            )),
+            MindLinkError::Configuration { config_key, .. } => match config_key {
+                Some(key) => Some(format!("Please check your {} configuration setting.", key)),
+                None => Some("Please check your application settings.".to_string()),
+            },
+            MindLinkError::FileSystem { operation, .. } => Some(format!(
+                "Please ensure you have permission to {} files and try again.",
+                operation
+            )),
+            MindLinkError::ProcessMonitoring { process_name, .. } => Some(format!(
+                "Restart {} service or contact support if the problem persists.",
+                process_name
+            )),
+            MindLinkError::HealthCheck { service_name, .. } => Some(format!(
+                "Restart the {} service and try again.",
+                service_name
+            )),
             MindLinkError::Tunnel { .. } => {
                 Some("Check your network connection and try creating the tunnel again.".to_string())
-            }
-            MindLinkError::SystemResource { resource_type, .. } => {
-                Some(format!("Ensure {} is available and try again.", resource_type))
-            }
+            },
+            MindLinkError::SystemResource { resource_type, .. } => Some(format!(
+                "Ensure {} is available and try again.",
+                resource_type
+            )),
             MindLinkError::Internal { .. } => {
                 Some("Please restart the application or contact support.".to_string())
-            }
+            },
         }
     }
 }
@@ -308,19 +363,25 @@ impl From<anyhow::Error> for MindLinkError {
     fn from(err: anyhow::Error) -> Self {
         // Try to categorize the error based on its message
         let err_msg = err.to_string().to_lowercase();
-        
+
         if err_msg.contains("auth") || err_msg.contains("login") || err_msg.contains("credential") {
             MindLinkError::Authentication {
                 message: "Authentication system error".to_string(),
                 source: Some(err),
             }
-        } else if err_msg.contains("network") || err_msg.contains("connection") || err_msg.contains("timeout") {
+        } else if err_msg.contains("network")
+            || err_msg.contains("connection")
+            || err_msg.contains("timeout")
+        {
             MindLinkError::Network {
                 message: "Network communication error".to_string(),
                 url: None,
                 source: Some(err),
             }
-        } else if err_msg.contains("binary") || err_msg.contains("spawn") || err_msg.contains("process") {
+        } else if err_msg.contains("binary")
+            || err_msg.contains("spawn")
+            || err_msg.contains("process")
+        {
             MindLinkError::BinaryExecution {
                 message: "Process execution error".to_string(),
                 binary_name: "unknown".to_string(),
@@ -333,7 +394,10 @@ impl From<anyhow::Error> for MindLinkError {
                 config_key: None,
                 source: Some(err),
             }
-        } else if err_msg.contains("file") || err_msg.contains("directory") || err_msg.contains("path") {
+        } else if err_msg.contains("file")
+            || err_msg.contains("directory")
+            || err_msg.contains("path")
+        {
             MindLinkError::FileSystem {
                 message: "File system operation error".to_string(),
                 path: None,
@@ -374,6 +438,16 @@ impl From<serde_json::Error> for MindLinkError {
     fn from(err: serde_json::Error) -> Self {
         MindLinkError::Configuration {
             message: "JSON parsing failed".to_string(),
+            config_key: None,
+            source: Some(anyhow::Error::from(err)),
+        }
+    }
+}
+
+impl From<tauri::Error> for MindLinkError {
+    fn from(err: tauri::Error) -> Self {
+        MindLinkError::Configuration {
+            message: "Tauri operation failed".to_string(),
             config_key: None,
             source: Some(anyhow::Error::from(err)),
         }

@@ -2,17 +2,12 @@
   "name": "mindlink",
   "version": "1.0.0",
   "description": "Local LLM API bridge with Cloudflare tunneling",
-  "main": "src/main.js",
   "homepage": ".",
   "scripts": {
     "start": "npx @tauri-apps/cli dev",
     "dev": "npx @tauri-apps/cli dev",
     "build": "npx @tauri-apps/cli build",
     "tauri": "npx @tauri-apps/cli",
-    "electron-start": "electron .",
-    "server": "node -e \"console.log('Use npm start to run the Tauri app')\"",
-    "bifrost": "node -e \"const BifrostManager = require('./src/bifrost/bifrostManager'); const b = new BifrostManager(); b.start().then(() => console.log('Bifrost running on port 3002')).catch(console.error); setInterval(() => {}, 1000);\"",
-    "electron-build": "electron-builder",
     "pack": "npx @tauri-apps/cli build --debug",
     "dist": "npx @tauri-apps/cli build",
     "bifrost:build": "./scripts/build-bifrost.sh",
@@ -42,44 +37,6 @@
     "url": "https://github.com/mindlink/mindlink/issues"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2",
-    "electron": "^28.0.0",
-    "electron-builder": "^24.9.1",
-    "wait-on": "^7.2.0"
-  },
-  "dependencies": {
-    "@fastify/cors": "^8.4.1",
-    "@fastify/static": "^6.12.0",
-    "@tauri-apps/cli": "^2.8.1",
-    "axios": "^1.6.2",
-    "fastify": "^4.24.3",
-    "fs-extra": "^11.2.0",
-    "node-notifier": "^10.0.1",
-    "uuid": "^9.0.1"
-  },
-  "build": {
-    "appId": "com.mindlink.app",
-    "productName": "MindLink",
-    "directories": {
-      "output": "dist"
-    },
-    "files": [
-      "src/**/*",
-      "assets/**/*",
-      "node_modules/**/*",
-      "package.json"
-    ],
-    "mac": {
-      "icon": "assets/icon.icns",
-      "category": "public.app-category.utilities"
-    },
-    "win": {
-      "icon": "assets/icon.ico",
-      "target": "nsis"
-    },
-    "linux": {
-      "icon": "assets/icon.png",
-      "target": "AppImage"
-    }
+    "@tauri-apps/cli": "^2.8.1"
   }
 }

@@ -1,10 +1,12 @@
 // Helper functions for command error handling and user interaction
-use tauri::AppHandle;
+
+#![allow(dead_code)]
+use crate::commands::ServiceResponse;
+use crate::dialog::DialogManager;
 use crate::error::{MindLinkError, MindLinkResult};
 use crate::error_reporter::{get_error_reporter, ErrorContext};
-use crate::dialog::DialogManager;
-use crate::commands::ServiceResponse;
 use std::collections::HashMap;
+use tauri::AppHandle;
 
 /// Helper for handling command errors with proper user feedback
 pub struct CommandErrorHandler;
@@ -26,15 +28,17 @@ impl CommandErrorHandler {
             correlation_id: Some(uuid::Uuid::new_v4().to_string()),
             additional_info: HashMap::new(),
         };
-        
+
         // Report the error
         if let Some(reporter) = get_error_reporter() {
-            let _report = reporter.report_error(app_handle, error.clone(), context).await;
+            let _report = reporter
+                .report_error(app_handle, error.clone(), context)
+                .await;
         } else {
             // Fallback: show dialog directly
             let _ = DialogManager::show_error(app_handle, &error, Some(component)).await;
         }
-        
+
         // Return service response with error details
         ServiceResponse {
             success: false,
@@ -43,7 +47,7 @@ impl CommandErrorHandler {
             tunnel_url: None,
         }
     }
-    
+
     /// Handle authentication errors specifically
     pub async fn handle_auth_error(
         app_handle: &AppHandle,
@@ -54,16 +58,17 @@ impl CommandErrorHandler {
             message: "Authentication failed".to_string(),
             source: Some(error),
         };
-        
+
         Self::handle_command_error(
             app_handle,
             auth_error,
             "Authentication",
             operation,
             Some("login"),
-        ).await
+        )
+        .await
     }
-    
+
     /// Handle network errors specifically
     pub async fn handle_network_error(
         app_handle: &AppHandle,
@@ -76,16 +81,17 @@ impl CommandErrorHandler {
             url: url.map(|u| u.to_string()),
             source: Some(error),
         };
-        
+
         Self::handle_command_error(
             app_handle,
             network_error,
             "Network",
             operation,
             Some("network_operation"),
-        ).await
+        )
+        .await
     }
-    
+
     /// Handle binary execution errors specifically
     pub async fn handle_binary_error(
         app_handle: &AppHandle,
@@ -100,31 +106,24 @@ impl CommandErrorHandler {
             binary_path: binary_path.map(|p| p.to_string()),
             source: Some(error),
         };
-        
+
         Self::handle_command_error(
             app_handle,
             binary_error,
             binary_name,
             operation,
             Some("start_service"),
-        ).await
+        )
+        .await
     }
-    
+
     /// Send success notification
-    pub fn send_success_notification(
-        app_handle: &AppHandle,
-        title: &str,
-        message: &str,
-    ) {
+    pub fn send_success_notification(app_handle: &AppHandle, title: &str, message: &str) {
         DialogManager::send_success_notification(app_handle, title, message);
     }
-    
+
     /// Send warning notification
-    pub fn send_warning_notification(
-        app_handle: &AppHandle,
-        title: &str,
-        message: &str,
-    ) {
+    pub fn send_warning_notification(app_handle: &AppHandle, title: &str, message: &str) {
         DialogManager::send_warning_notification(app_handle, title, message);
     }
 }
@@ -149,9 +148,10 @@ where
                 component,
                 operation,
                 user_action,
-            ).await;
+            )
+            .await;
             Err(service_response)
-        }
+        },
     }
 }
 
@@ -162,34 +162,44 @@ macro_rules! handle_command_result {
         match $result {
             Ok(value) => value,
             Err(error) => {
-                return Ok(crate::command_helpers::CommandErrorHandler::handle_command_error(
-                    &$app,
-                    error.into(),
-                    $component,
-                    $operation,
-                    None,
-                ).await);
-            }
+                return Ok(
+                    crate::command_helpers::CommandErrorHandler::handle_command_error(
+                        &$app,
+                        error.into(),
+                        $component,
+                        $operation,
+                        None,
+                    )
+                    .await,
+                );
+            },
         }
     };
     ($app:expr, $result:expr, $component:expr, $operation:expr, $user_action:expr) => {
         match $result {
             Ok(value) => value,
             Err(error) => {
-                return Ok(crate::command_helpers::CommandErrorHandler::handle_command_error(
-                    &$app,
-                    error.into(),
-                    $component,
-                    $operation,
-                    Some($user_action),
-                ).await);
-            }
+                return Ok(
+                    crate::command_helpers::CommandErrorHandler::handle_command_error(
+                        &$app,
+                        error.into(),
+                        $component,
+                        $operation,
+                        Some($user_action),
+                    )
+                    .await,
+                );
+            },
         }
     };
 }
 
 /// Helper for creating success responses
-pub fn success_response(message: &str, server_url: Option<String>, tunnel_url: Option<String>) -> ServiceResponse {
+pub fn success_response(
+    message: &str,
+    server_url: Option<String>,
+    tunnel_url: Option<String>,
+) -> ServiceResponse {
     ServiceResponse {
         success: true,
         message: Some(message.to_string()),
@@ -209,13 +219,13 @@ pub fn error_response(message: &str) -> ServiceResponse {
 }
 
 /// Validate input and return error response if invalid
-pub fn validate_input<T>(
-    input: Option<T>,
-    field_name: &str,
-) -> Result<T, ServiceResponse> {
+pub fn validate_input<T>(input: Option<T>, field_name: &str) -> Result<T, ServiceResponse> {
     match input {
         Some(value) => Ok(value),
-        None => Err(error_response(&format!("Missing required field: {}", field_name))),
+        None => Err(error_response(&format!(
+            "Missing required field: {}",
+            field_name
+        ))),
     }
 }
 
@@ -227,13 +237,18 @@ pub async fn check_service_health(
     match health_check.await {
         Ok(healthy) => {
             if !healthy {
-                Err(error_response(&format!("{} service is not healthy", service_name)))
+                Err(error_response(&format!(
+                    "{} service is not healthy",
+                    service_name
+                )))
             } else {
                 Ok(true)
             }
-        }
-        Err(e) => {
-            Err(error_response(&format!("{} health check failed: {}", service_name, e.user_message())))
-        }
+        },
+        Err(e) => Err(error_response(&format!(
+            "{} health check failed: {}",
+            service_name,
+            e.user_message()
+        ))),
     }
 }

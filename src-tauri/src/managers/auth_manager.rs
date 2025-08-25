@@ -1,21 +1,21 @@
 // Authentication Manager - OAuth2 PKCE Implementation with enterprise-grade error handling
-use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
-use tokio::fs;
-use chrono::{DateTime, Utc, Duration};
-use std::collections::HashMap;
-use std::sync::Arc;
-use tokio::sync::RwLock;
+use anyhow::{anyhow, Result};
 use axum::{extract::Query, response::Html, routing::get, Router};
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
+use chrono::{DateTime, Duration, Utc};
 use rand::RngCore;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use url::Url;
+use std::collections::HashMap;
+use std::path::PathBuf;
+use std::sync::Arc;
+use tokio::fs;
 use tokio::net::TcpListener;
-use anyhow::{anyhow, Result};
+use tokio::sync::RwLock;
+use url::Url;
 
 use crate::error::{MindLinkError, MindLinkResult};
-use crate::{log_info, log_error, auth_error};
+use crate::{auth_error, log_error, log_info};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuthTokens {
@@ -51,16 +51,31 @@ struct AuthCallbackQuery {
 }
 
 struct OAuthState {
+    #[allow(dead_code)]
     code_verifier: String,
+    #[allow(dead_code)]
     state: String,
     auth_result: Arc<RwLock<Option<MindLinkResult<String>>>>,
+}
+
+// Allow dead_code for OAuthState fields that might not be used in all tests
+#[allow(dead_code)]
+impl OAuthState {
+    fn new(code_verifier: String, state: String) -> Self {
+        Self {
+            code_verifier,
+            state,
+            auth_result: Arc::new(RwLock::new(None)),
+        }
+    }
 }
 
 // OpenAI OAuth configuration
 const OPENAI_AUTH_URL: &str = "https://auth0.openai.com/authorize";
 const OPENAI_TOKEN_URL: &str = "https://auth0.openai.com/oauth/token";
 const CLIENT_ID: &str = "TdJIcbe16WoTHtN95nyywh5E4yOo6ItG"; // OpenAI's public client ID
-const SCOPE: &str = "openid profile email offline_access model.request model.read organization.read";
+const SCOPE: &str =
+    "openid profile email offline_access model.request model.read organization.read";
 
 #[derive(Debug)]
 pub struct AuthManager {
@@ -78,66 +93,72 @@ impl AuthManager {
                 source: None,
             })?
             .join(".mindlink");
-        
+
         let auth_path = auth_dir.join("auth.json");
-        
+
         // Ensure directory exists
-        fs::create_dir_all(&auth_dir).await.map_err(|e| {
-            MindLinkError::FileSystem {
+        fs::create_dir_all(&auth_dir)
+            .await
+            .map_err(|e| MindLinkError::FileSystem {
                 message: "Failed to create auth directory".to_string(),
                 path: Some(auth_dir.to_string_lossy().to_string()),
                 operation: "create directory".to_string(),
                 source: Some(e.into()),
-            }
-        })?;
-        
+            })?;
+
         log_info!("AuthManager", "Initializing authentication system");
-        
+
         let mut manager = Self {
             auth_path,
             tokens: None,
         };
-        
+
         // Load and validate existing tokens
         match manager.load_tokens().await {
             Ok(_) => {
                 log_info!("AuthManager", "Existing tokens loaded successfully");
-                
+
                 // Validate tokens on startup
                 if let Err(validation_err) = manager.validate_tokens_on_startup().await {
                     log_error!("AuthManager", validation_err);
                     manager.tokens = None; // Clear invalid tokens
                 }
-            }
+            },
             Err(_e) => {
-                log_info!("AuthManager", "No existing auth tokens found, will require authentication");
+                log_info!(
+                    "AuthManager",
+                    "No existing auth tokens found, will require authentication"
+                );
                 // Not an error - just means user needs to authenticate
-            }
+            },
         }
-        
+
         log_info!("AuthManager", "Authentication system initialized");
-        
+
         Ok(manager)
     }
-    
+
     /// Validate tokens on startup and attempt silent refresh if needed
     async fn validate_tokens_on_startup(&mut self) -> MindLinkResult<()> {
         if let Some(tokens) = &self.tokens {
             let now = Utc::now();
             let expires_soon = now + Duration::minutes(5);
-            
+
             if tokens.expires_at <= expires_soon {
-                log_info!("AuthManager", "Tokens expiring soon, attempting silent refresh");
-                
+                log_info!(
+                    "AuthManager",
+                    "Tokens expiring soon, attempting silent refresh"
+                );
+
                 match self.refresh_tokens_silently().await {
                     Ok(_) => {
                         log_info!("AuthManager", "Tokens refreshed successfully on startup");
                         Ok(())
-                    }
+                    },
                     Err(refresh_err) => {
                         log_error!("AuthManager", refresh_err.clone());
                         Err(refresh_err)
-                    }
+                    },
                 }
             } else {
                 log_info!("AuthManager", "Tokens are valid and not expiring soon");
@@ -147,58 +168,63 @@ impl AuthManager {
             Err(auth_error!("No tokens available for validation"))
         }
     }
-    
+
     /// Silently refresh tokens using the refresh token
     async fn refresh_tokens_silently(&mut self) -> MindLinkResult<()> {
-        let current_tokens = self.tokens.as_ref()
+        let current_tokens = self
+            .tokens
+            .as_ref()
             .ok_or_else(|| auth_error!("No tokens available for refresh"))?;
-        
+
         if current_tokens.refresh_token.is_empty() {
             return Err(auth_error!("No refresh token available"));
         }
-        
+
         log_info!("AuthManager", "Attempting silent token refresh");
-        
+
         let client = reqwest::Client::new();
-        
+
         let mut refresh_params = HashMap::new();
         refresh_params.insert("grant_type", "refresh_token");
         refresh_params.insert("refresh_token", &current_tokens.refresh_token);
         refresh_params.insert("client_id", CLIENT_ID);
-        
+
         let response = client
             .post(OPENAI_TOKEN_URL)
             .form(&refresh_params)
             .send()
             .await
             .map_err(|e| auth_error!("Failed to send refresh token request", e))?;
-        
+
         if !response.status().is_success() {
             let error_text = response.text().await.unwrap_or_default();
             return Err(auth_error!(format!("Token refresh failed: {}", error_text)));
         }
-        
+
         let refresh_response: RefreshTokenResponse = response
             .json()
             .await
             .map_err(|e| auth_error!("Failed to parse refresh token response", e))?;
-        
+
         // Update tokens with refreshed values
         let new_tokens = AuthTokens {
             access_token: refresh_response.access_token,
-            refresh_token: refresh_response.refresh_token.unwrap_or(current_tokens.refresh_token.clone()),
-            expires_at: Utc::now() + Duration::seconds(refresh_response.expires_in.unwrap_or(3600) as i64),
+            refresh_token: refresh_response
+                .refresh_token
+                .unwrap_or(current_tokens.refresh_token.clone()),
+            expires_at: Utc::now()
+                + Duration::seconds(refresh_response.expires_in.unwrap_or(3600) as i64),
             token_type: refresh_response.token_type,
         };
-        
+
         self.tokens = Some(new_tokens);
         self.save_tokens().await?;
-        
+
         log_info!("AuthManager", "Tokens refreshed and saved successfully");
-        
+
         Ok(())
     }
-    
+
     pub async fn is_authenticated(&self) -> bool {
         if let Some(tokens) = &self.tokens {
             // Check if tokens are still valid (with 5 minute buffer)
@@ -208,125 +234,140 @@ impl AuthManager {
             false
         }
     }
-    
+
     pub async fn login(&mut self) -> Result<()> {
         println!("🔐 Starting OAuth2 PKCE authentication flow...");
-        
+
         // Generate PKCE parameters
         let code_verifier = Self::generate_code_verifier();
         let code_challenge = Self::generate_code_challenge(&code_verifier)?;
         let state = Self::generate_state();
-        
+
         // Find an available port for the callback server
         let listener = TcpListener::bind("127.0.0.1:0").await?;
         let callback_port = listener.local_addr()?.port();
         let redirect_uri = format!("http://127.0.0.1:{}/callback", callback_port);
-        
-        println!("📡 Starting local callback server on port {}", callback_port);
-        
+
+        println!(
+            "📡 Starting local callback server on port {}",
+            callback_port
+        );
+
         // Prepare OAuth state
         let oauth_state = Arc::new(OAuthState {
             code_verifier: code_verifier.clone(),
             state: state.clone(),
             auth_result: Arc::new(RwLock::new(None)),
         });
-        
+
         // Build authorization URL
         let auth_url = Self::build_auth_url(&redirect_uri, &code_challenge, &state)?;
         println!("🌐 Opening browser for authentication...");
-        
+
         // Open browser using system command
         if let Err(e) = Self::open_browser(&auth_url).await {
-            println!("⚠️ Failed to open browser automatically: {}. Please open this URL manually:", e);
+            println!(
+                "⚠️ Failed to open browser automatically: {}. Please open this URL manually:",
+                e
+            );
             println!("    {}", auth_url);
         }
-        
+
         // Start callback server and wait for response
         let auth_code = self.handle_callback_server(listener, oauth_state).await?;
-        
+
         // Exchange authorization code for tokens
-        let tokens = self.exchange_code_for_tokens(&auth_code, &code_verifier, &redirect_uri).await?;
-        
+        let tokens = self
+            .exchange_code_for_tokens(&auth_code, &code_verifier, &redirect_uri)
+            .await?;
+
         // Store tokens
         self.tokens = Some(tokens);
         self.save_tokens().await?;
-        
+
         println!("✅ Authentication successful!");
         Ok(())
     }
-    
+
     pub async fn refresh_tokens(&mut self) -> Result<()> {
-        let tokens = self.tokens.as_ref()
+        let tokens = self
+            .tokens
+            .as_ref()
             .ok_or_else(|| anyhow!("No tokens available to refresh"))?;
-        
+
         println!("🔄 Refreshing authentication tokens...");
-        
+
         let client = reqwest::Client::new();
         let mut form_params = HashMap::new();
         form_params.insert("grant_type", "refresh_token");
         form_params.insert("refresh_token", &tokens.refresh_token);
         form_params.insert("client_id", CLIENT_ID);
-        
+
         let response = client
             .post(OPENAI_TOKEN_URL)
             .form(&form_params)
             .header("Content-Type", "application/x-www-form-urlencoded")
             .send()
             .await?;
-        
+
         if !response.status().is_success() {
             let status = response.status();
-            let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+            let error_text = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unknown error".to_string());
             return Err(anyhow!("Token refresh failed: {} - {}", status, error_text));
         }
-        
+
         let refresh_response: RefreshTokenResponse = response.json().await?;
-        
+
         let expires_at = if let Some(expires_in) = refresh_response.expires_in {
             Utc::now() + Duration::seconds(expires_in as i64)
         } else {
             Utc::now() + Duration::hours(1) // Default 1 hour if not specified
         };
-        
+
         let new_tokens = AuthTokens {
             access_token: refresh_response.access_token,
-            refresh_token: refresh_response.refresh_token.unwrap_or(tokens.refresh_token.clone()),
+            refresh_token: refresh_response
+                .refresh_token
+                .unwrap_or(tokens.refresh_token.clone()),
             expires_at,
             token_type: refresh_response.token_type,
         };
-        
+
         self.tokens = Some(new_tokens);
         self.save_tokens().await?;
-        
+
         println!("✅ Tokens refreshed successfully!");
         Ok(())
     }
-    
+
     pub async fn logout(&mut self) -> Result<()> {
         self.tokens = None;
-        
+
         // Remove auth file
         if self.auth_path.exists() {
             fs::remove_file(&self.auth_path).await?;
         }
-        
+
         println!("Logged out successfully");
         Ok(())
     }
-    
+
     pub fn get_access_token(&self) -> Option<&str> {
         self.tokens.as_ref().map(|t| t.access_token.as_str())
     }
-    
+
     async fn load_tokens(&mut self) -> Result<()> {
         let content = fs::read_to_string(&self.auth_path).await?;
-        
+
         // First try to deserialize with the new format (with token_type field)
         match serde_json::from_str::<AuthTokens>(&content) {
             Ok(tokens) => {
                 self.tokens = Some(tokens);
                 Ok(())
-            }
+            },
             Err(_) => {
                 // Try to deserialize with the old format (without token_type field) for backward compatibility
                 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -335,7 +376,7 @@ impl AuthManager {
                     pub refresh_token: String,
                     pub expires_at: DateTime<Utc>,
                 }
-                
+
                 match serde_json::from_str::<OldAuthTokens>(&content) {
                     Ok(old_tokens) => {
                         // Migrate to new format
@@ -349,13 +390,13 @@ impl AuthManager {
                         // Save in new format
                         self.save_tokens().await?;
                         Ok(())
-                    }
-                    Err(e) => Err(anyhow!("Failed to parse token file: {}", e))
+                    },
+                    Err(e) => Err(anyhow!("Failed to parse token file: {}", e)),
                 }
-            }
+            },
         }
     }
-    
+
     async fn save_tokens(&self) -> Result<()> {
         if let Some(tokens) = &self.tokens {
             let json = serde_json::to_string_pretty(tokens)?;
@@ -363,7 +404,7 @@ impl AuthManager {
         }
         Ok(())
     }
-    
+
     pub async fn ensure_valid_tokens(&mut self) -> Result<()> {
         if !self.is_authenticated().await {
             if self.tokens.is_some() {
@@ -380,7 +421,7 @@ impl AuthManager {
         }
         Ok(())
     }
-    
+
     // PKCE helper methods
     fn generate_code_verifier() -> String {
         let mut rng = rand::thread_rng();
@@ -388,21 +429,21 @@ impl AuthManager {
         rng.fill_bytes(&mut bytes);
         URL_SAFE_NO_PAD.encode(&bytes)
     }
-    
+
     fn generate_code_challenge(code_verifier: &str) -> Result<String> {
         let mut hasher = Sha256::new();
         hasher.update(code_verifier.as_bytes());
         let digest = hasher.finalize();
         Ok(URL_SAFE_NO_PAD.encode(&digest))
     }
-    
+
     fn generate_state() -> String {
         let mut rng = rand::thread_rng();
         let mut bytes = [0u8; 16];
         rng.fill_bytes(&mut bytes);
         URL_SAFE_NO_PAD.encode(&bytes)
     }
-    
+
     fn build_auth_url(redirect_uri: &str, code_challenge: &str, state: &str) -> Result<String> {
         let mut url = Url::parse(OPENAI_AUTH_URL)?;
         url.query_pairs_mut()
@@ -417,64 +458,60 @@ impl AuthManager {
             .append_pair("audience", "https://api.openai.com/v1");
         Ok(url.to_string())
     }
-    
+
     async fn open_browser(url: &str) -> Result<()> {
         // Use system commands to open browser
         #[cfg(target_os = "linux")]
         {
-            tokio::process::Command::new("xdg-open")
-                .arg(url)
-                .spawn()?;
+            tokio::process::Command::new("xdg-open").arg(url).spawn()?;
         }
-        
+
         #[cfg(target_os = "macos")]
         {
-            tokio::process::Command::new("open")
-                .arg(url)
-                .spawn()?;
+            tokio::process::Command::new("open").arg(url).spawn()?;
         }
-        
+
         #[cfg(target_os = "windows")]
         {
             tokio::process::Command::new("cmd")
                 .args(["/C", "start", url])
                 .spawn()?;
         }
-        
+
         Ok(())
     }
-    
+
     async fn handle_callback_server(
-        &self, 
-        listener: TcpListener, 
-        oauth_state: Arc<OAuthState>
+        &self,
+        listener: TcpListener,
+        oauth_state: Arc<OAuthState>,
     ) -> Result<String> {
         println!("⏳ Waiting for authentication callback...");
-        
+
         // Create the callback router
-        let app = Router::new()
-            .route("/callback", get({
+        let app = Router::new().route(
+            "/callback",
+            get({
                 let oauth_state = oauth_state.clone();
-                move |query: Query<AuthCallbackQuery>| {
-                    Self::handle_callback(query, oauth_state)
-                }
-            }));
-        
+                move |query: Query<AuthCallbackQuery>| Self::handle_callback(query, oauth_state)
+            }),
+        );
+
         // Use axum's serve function with our listener
         let server = axum::serve(listener, app);
-        
+
         // Set a timeout for the authentication process
         let timeout_duration = std::time::Duration::from_secs(300); // 5 minutes
-        
+
         let oauth_state_clone = oauth_state.clone();
-        
+
         // Start the server in the background
         tokio::spawn(async move {
             if let Err(e) = server.await {
                 println!("Server error: {}", e);
             }
         });
-        
+
         // Wait for the callback result
         tokio::select! {
             result = self.wait_for_callback(oauth_state_clone) => {
@@ -485,27 +522,30 @@ impl AuthManager {
             }
         }
     }
-    
+
     async fn wait_for_callback(&self, oauth_state: Arc<OAuthState>) -> Result<String> {
         loop {
             // Check if we received the auth result
             if let Some(result) = oauth_state.auth_result.read().await.as_ref() {
-                return result.as_ref().map(|s| s.clone()).map_err(|e| anyhow!("{}", e));
+                return result
+                    .as_ref()
+                    .map(|s| s.clone())
+                    .map_err(|e| anyhow!("{}", e));
             }
-            
+
             // Sleep for a short time before checking again
             tokio::time::sleep(std::time::Duration::from_millis(100)).await;
         }
     }
-    
+
     async fn handle_callback(
         Query(query): Query<AuthCallbackQuery>,
-        oauth_state: Arc<OAuthState>
+        oauth_state: Arc<OAuthState>,
     ) -> Html<&'static str> {
         println!("📨 Received authentication callback");
-        
+
         let mut auth_result = oauth_state.auth_result.write().await;
-        
+
         // Verify state parameter
         if let Some(state) = &query.state {
             if state != &oauth_state.state {
@@ -516,14 +556,19 @@ impl AuthManager {
             *auth_result = Some(Err(anyhow!("Missing state parameter").into()));
             return Html(SUCCESS_PAGE_ERROR);
         }
-        
+
         // Check for errors
         if let Some(error) = &query.error {
-            let error_desc = query.error_description.as_deref().unwrap_or("Unknown error");
-            *auth_result = Some(Err(anyhow!("OAuth error: {} - {}", error, error_desc).into()));
+            let error_desc = query
+                .error_description
+                .as_deref()
+                .unwrap_or("Unknown error");
+            *auth_result = Some(Err(
+                anyhow!("OAuth error: {} - {}", error, error_desc).into()
+            ));
             return Html(SUCCESS_PAGE_ERROR);
         }
-        
+
         // Extract authorization code
         if let Some(code) = &query.code {
             *auth_result = Some(Ok(code.clone()));
@@ -533,15 +578,15 @@ impl AuthManager {
             Html(SUCCESS_PAGE_ERROR)
         }
     }
-    
+
     async fn exchange_code_for_tokens(
         &self,
         auth_code: &str,
         code_verifier: &str,
-        redirect_uri: &str
+        redirect_uri: &str,
     ) -> Result<AuthTokens> {
         println!("🔄 Exchanging authorization code for tokens...");
-        
+
         let client = reqwest::Client::new();
         let mut form_params = HashMap::new();
         form_params.insert("grant_type", "authorization_code");
@@ -549,28 +594,35 @@ impl AuthManager {
         form_params.insert("code", auth_code);
         form_params.insert("redirect_uri", redirect_uri);
         form_params.insert("code_verifier", code_verifier);
-        
+
         let response = client
             .post(OPENAI_TOKEN_URL)
             .form(&form_params)
             .header("Content-Type", "application/x-www-form-urlencoded")
             .send()
             .await?;
-        
+
         if !response.status().is_success() {
             let status = response.status();
-            let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(anyhow!("Token exchange failed: {} - {}", status, error_text));
+            let error_text = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unknown error".to_string());
+            return Err(anyhow!(
+                "Token exchange failed: {} - {}",
+                status,
+                error_text
+            ));
         }
-        
+
         let token_response: TokenResponse = response.json().await?;
-        
+
         let expires_at = if let Some(expires_in) = token_response.expires_in {
             Utc::now() + Duration::seconds(expires_in as i64)
         } else {
             Utc::now() + Duration::hours(1) // Default 1 hour if not specified
         };
-        
+
         Ok(AuthTokens {
             access_token: token_response.access_token,
             refresh_token: token_response.refresh_token.unwrap_or_default(),

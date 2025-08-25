@@ -1,5 +1,5 @@
-//! Build script for the MindLink Tauri application
+//! Build script for the `MindLink` Tauri application
 
 fn main() {
-    tauri_build::build()
+    tauri_build::build();
 }

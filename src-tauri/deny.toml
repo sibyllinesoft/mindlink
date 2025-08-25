@@ -1,0 +1,103 @@
+# Cargo Deny Configuration for MindLink
+# This file configures security policies for dependencies
+
+# Advisories configuration - security vulnerabilities
+[advisories]
+# The path where the advisory database is cloned/fetched into
+database_urls = ["https://github.com/rustsec/advisory-db"]
+# The url of the advisory database to use
+vulnerability = "deny"
+# Unmaintained advisory level
+unmaintained = "warn"
+# Yanked crate advisory level  
+yanked = "warn"
+# Notice advisory level
+notice = "warn"
+# Ignore specific advisories by ID
+ignore = [
+    # Example: "RUSTSEC-2020-0001",
+]
+
+# Licenses configuration - only allow approved licenses
+[licenses]
+# List of explicitly allowed licenses
+allow = [
+    "MIT",
+    "Apache-2.0", 
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-DFS-2016",
+    "CC0-1.0",
+]
+# List of explicitly disallowed licenses
+deny = [
+    "GPL-2.0",
+    "GPL-3.0", 
+    "AGPL-3.0",
+    "LGPL-2.1",
+    "LGPL-3.0",
+]
+# Confidence threshold for detecting a license from a license file
+confidence_threshold = 0.8
+# Allow 1 or more licenses on a single crate
+exceptions = [
+    # ring uses multiple licenses but all are acceptable
+    { allow = ["MIT", "ISC", "OpenSSL"], name = "ring" },
+    # webpki-roots contains Mozilla's CA root store  
+    { allow = ["MPL-2.0"], name = "webpki-roots" },
+]
+
+# Bans configuration - disallow problematic crates
+[bans]
+# Lint level for when multiple versions of the same crate are detected
+multiple_versions = "warn" 
+# Lint level for when a crate version requirement is `*`
+wildcards = "allow"
+# The graph highlighting used when creating dotgraphs for crates
+highlight = "all"
+# List of crates that are allowed. Use with caution!
+allow = [
+    #{ name = "ansi_term", version = "=0.11.0" },
+]
+# List of crates to deny
+deny = [
+    # Crates with known security issues
+    { name = "openssl", reason = "Use rustls instead for better security" },
+    { name = "native-tls", reason = "Use rustls-tls features instead" },
+    # Unmaintained or problematic crates
+    { name = "time", version = "0.1", reason = "Use chrono or time 0.3+ instead" },
+    { name = "chrono", version = "<0.4.19", reason = "Older versions have security issues" },
+    # Development-only crates that shouldn't be in production
+    { name = "proptest", reason = "Testing crate, should not be in production builds" },
+]
+# Certain crates/versions that will be skipped when doing duplicate detection
+skip = [
+    #{ name = "ansi_term", version = "=0.11.0" },
+]
+# Similarly to `skip` allows you to skip certain crates from being checked
+skip_tree = [
+    #{ name = "ansi_term", version = "=0.11.0", depth = 20 },
+]
+
+# Sources configuration - control where crates can be downloaded from  
+[sources]
+# Lint level for what to happen when a crate from a crate registry that is
+# not in the allow list is encountered
+unknown_registry = "warn"
+# Lint level for what to happen when a crate from a git repository that is not
+# in the allow list is encountered
+unknown_git = "warn"
+# List of allowed registries
+allow_registry = ["https://github.com/rust-lang/crates.io-index"]
+# List of allowed Git repositories
+allow_git = [
+    # Example for allowing specific git repos:
+    # "https://github.com/rust-lang/crates.io-index",
+]
+
+[output]
+# When outputting inclusion graphs in diagnostics that include features, prefix
+# the feature name with the package name if it differs from the package name
+feature_depth = 1

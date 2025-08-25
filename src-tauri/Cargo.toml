@@ -19,12 +19,14 @@ tauri-plugin-notification = "2"
 tauri-plugin-fs = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-http = "2"
+tauri-plugin-opener = "2"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tokio = { version = "1.0", features = ["full"] }
-reqwest = { version = "0.11", features = ["json"] }
+reqwest = { version = "0.12", features = ["json", "stream"] }
 uuid = { version = "1.0", features = ["v4"] }
 chrono = { version = "0.4", features = ["serde"] }
+bytes = "1.0"
 anyhow = "1.0"
 dirs = "5.0"
 env_logger = "0.10"
@@ -37,9 +39,18 @@ rand = "0.8"
 url = "2.0"
 thiserror = "1.0"
 futures = "0.3"
+futures-util = "0.3"
+tokio-stream = "0.1"
 async-stream = "0.3"
 tower = "0.4"
 tower-http = { version = "0.5", features = ["fs", "cors"] }
+
+[dev-dependencies]
+mockall = "0.12"
+wiremock = "0.6"
+tempfile = "3.0"
+assert_matches = "1.5"
+tokio-test = "0.4"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
@@ -73,26 +84,50 @@ non_upper_case_globals = "deny"
 
 [lints.clippy]
 # Pedantic lints for enterprise code quality
-pedantic = "deny"
+pedantic = { level = "deny", priority = -1 }
 # Nursery lints for cutting-edge best practices
-nursery = "deny" 
-# Restriction lints for additional safety
-restriction = "warn"
+nursery = { level = "deny", priority = -1 }
 # Performance lints
-perf = "deny"
+perf = { level = "deny", priority = -1 }
 # Correctness lints
-correctness = "deny"
+correctness = { level = "deny", priority = -1 }
 # Style lints
-style = "deny"
+style = { level = "deny", priority = -1 }
 # Complexity lints
-complexity = "deny"
+complexity = { level = "deny", priority = -1 }
 # Suspicious code patterns
-suspicious = "deny"
+suspicious = { level = "deny", priority = -1 }
+
+# Individually enabled restriction lints (instead of blanket restriction group)
+# Memory safety and correctness
+indexing_slicing = "deny"
+unwrap_used = "deny" 
+expect_used = "warn"
+panic = "deny"
+unreachable = "deny"
+# Performance critical restrictions  
+print_stdout = "warn"
+print_stderr = "warn"
+dbg_macro = "deny"
+# Code quality restrictions
+todo = "warn"
+unimplemented = "deny"
+missing_docs_in_private_items = "warn"
 
 # Allow specific clippy lints that may be too restrictive for our use case
-# (These can be adjusted based on project needs)
 too_many_lines = "allow"
 missing_errors_doc = "allow"  # We use MindLinkError consistently
 missing_panics_doc = "allow"  # We're eliminating panics
 module_name_repetitions = "allow"  # Common in Rust modules
 similar_names = "allow"  # Sometimes necessary for clarity
+# Allow some nursery lints that are too strict
+use_self = "allow"  # Sometimes conflicts with derive macros
+
+# Code coverage configuration for cargo-tarpaulin
+[profile.test]
+# Enable debug symbols for better coverage reporting
+debug = true
+# Optimize for coverage accuracy over speed
+opt-level = 0
+# Include debug info for better line-level reporting
+debug-assertions = true
