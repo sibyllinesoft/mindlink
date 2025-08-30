@@ -1,0 +1,147 @@
+/* Bifrost Configuration Button */
+.bifrost-button {
+  position: relative;
+  background: var(--color-surface-card);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-primary);
+  padding: var(--space-2) var(--space-4);
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  height: 2.5rem; /* Match tunnel toggle height for consistency */
+  min-width: auto; /* Allow flexible width */
+  white-space: nowrap;
+}
+
+.bifrost-button:hover:not(:disabled) {
+  background: var(--color-surface-card-hover);
+  border-color: var(--color-accent-primary);
+  color: var(--color-accent-primary);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.bifrost-button:hover:not(:disabled) .bifrost-button__icon {
+  color: var(--color-accent-primary);
+}
+
+.bifrost-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.bifrost-button__icon {
+  flex-shrink: 0;
+  transition: var(--transition-colors);
+  color: var(--color-text-secondary);
+}
+
+.bifrost-button__label {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+/* Loading State */
+.bifrost-button--loading {
+  padding-right: var(--space-8);
+}
+
+.bifrost-button__loading {
+  position: absolute;
+  right: var(--space-3);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.bifrost-button__spinner {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid var(--color-border-secondary);
+  border-top: 2px solid var(--color-accent-primary);
+  border-radius: var(--radius-full);
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Integration with Unified Navigation - Now handled by parent component */
+
+/* Focus states */
+.bifrost-button:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+/* Professional network tool aesthetic */
+.bifrost-button {
+  /* Subtle gradient for depth */
+  background: linear-gradient(
+    145deg,
+    var(--color-surface-card),
+    var(--color-surface-secondary)
+  );
+  
+  /* Slight border radius for modern look */
+  border-radius: var(--radius-md);
+  
+  /* Text shadow for better readability */
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.bifrost-button:hover:not(:disabled) {
+  /* Enhanced gradient on hover */
+  background: linear-gradient(
+    145deg,
+    var(--color-surface-card-hover),
+    var(--color-surface-tertiary)
+  );
+  
+  /* Glow effect */
+  box-shadow: 
+    var(--shadow-md),
+    0 0 0 1px var(--color-accent-primary),
+    0 0 8px rgba(59, 130, 246, 0.2);
+}
+
+/* State indicator for when Bifrost is running */
+.bifrost-button--active {
+  border-color: var(--color-status-connected);
+  color: var(--color-status-connected);
+}
+
+.bifrost-button--active .bifrost-button__icon {
+  color: var(--color-status-connected);
+}
+
+.bifrost-button--active::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border: 1px solid var(--color-status-connected);
+  border-radius: var(--radius-md);
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .bifrost-button__label {
+    display: none; /* Hide label on small screens, show only icon */
+  }
+  
+  .bifrost-button {
+    min-width: 2.25rem;
+    padding: var(--space-2);
+  }
+}

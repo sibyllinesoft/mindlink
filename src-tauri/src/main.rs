@@ -40,6 +40,7 @@
 #![allow(static_mut_refs)]
 
 use tauri::{
+    image::Image,
     menu::{MenuBuilder, MenuEvent, MenuItemBuilder},
     tray::{TrayIconBuilder, TrayIconEvent},
     AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder,
@@ -251,6 +252,10 @@ pub struct AppState {
 
     /// Current tray state for dynamic icon updates
     pub current_tray_state: Arc<RwLock<TrayState>>,
+
+    /// Cached authentication status to avoid expensive cloudflared calls
+    /// Format: (is_authenticated, last_check_time)
+    pub auth_cache: Arc<RwLock<Option<(bool, std::time::Instant)>>>,
 }
 
 impl AppState {
@@ -290,6 +295,7 @@ impl AppState {
             is_serving: Arc::new(RwLock::new(false)),
             last_error: Arc::new(RwLock::new(None)),
             current_tray_state: Arc::new(RwLock::new(TrayState::Disconnected)),
+            auth_cache: Arc::new(RwLock::new(None)),
         })
     }
 }
@@ -423,6 +429,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             let _tray = TrayIconBuilder::new()
                 .menu(&tray_menu)
+                .icon(app.default_window_icon().unwrap().clone())
+                .tooltip("MindLink - Local LLM Router")
                 .on_menu_event(handle_menu_event)
                 .build(app)?;
 
@@ -502,6 +510,30 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             commands::close_tunnel,
             commands::get_tunnel_status,
             commands::install_cloudflared_binary,
+            commands::get_instance_token,
+            commands::regenerate_token,
+            commands::get_qr_data,
+            commands::show_main_window,
+            commands::test_show_main_window,
+            commands::oauth_login,
+            commands::oauth_logout,
+            commands::check_auth_status,
+            commands::start_tunnel,
+            commands::stop_tunnel,
+            commands::simple_test,
+            commands::get_settings,
+            commands::update_setting,
+            commands::get_authorized_apps,
+            commands::add_authorized_app,
+            commands::update_app_model,
+            commands::remove_authorized_app,
+            commands::open_external_url,
+            commands::get_certificate_instructions,
+            commands::check_certificate_status,
+            commands::test_certificate_handling,
+            commands::get_plugin_manifests,
+            commands::get_plugins_directory,
+            commands::ensure_plugins_directory,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -846,10 +878,13 @@ fn handle_menu_event(app: &AppHandle, event: MenuEvent) {
             });
         },
         "settings" => {
+            println!("Settings menu item clicked");
             if let Some(window) = app.get_webview_window("settings") {
+                println!("Settings window already exists, showing it");
                 let _ = window.show();
                 let _ = window.set_focus();
             } else {
+                println!("Creating new settings window");
                 create_settings_window(app);
             }
         },
@@ -896,12 +931,22 @@ fn handle_menu_event(app: &AppHandle, event: MenuEvent) {
 }
 
 fn create_settings_window(app: &AppHandle) {
-    let _window =
-        WebviewWindowBuilder::new(app, "settings", WebviewUrl::App("settings.html".into()))
-            .title("MindLink Settings")
-            .inner_size(600.0, 500.0)
-            .resizable(true)
-            .build();
+    println!("create_settings_window called");
+    match WebviewWindowBuilder::new(app, "settings", WebviewUrl::App("settings.html".into()))
+        .title("MindLink Settings")
+        .inner_size(600.0, 500.0)
+        .resizable(true)
+        .build()
+    {
+        Ok(window) => {
+            println!("Settings window created successfully, showing and focusing");
+            let _ = window.show();
+            let _ = window.set_focus();
+        }
+        Err(e) => {
+            eprintln!("Failed to create settings window: {}", e);
+        }
+    }
 }
 
 async fn show_connection_status(app: &AppHandle) {

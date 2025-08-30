@@ -467,4 +467,71 @@ impl ConfigManager {
 
         Ok(())
     }
+
+    /// Get a custom field from a separate custom config file
+    pub async fn get_custom_field(&self, key: &str) -> MindLinkResult<Option<serde_json::Value>> {
+        let custom_config_path = self.config_path.with_file_name("custom.json");
+        
+        match fs::read_to_string(&custom_config_path).await {
+            Ok(content) => {
+                let custom_data: serde_json::Value = serde_json::from_str(&content)
+                    .map_err(|e| MindLinkError::Configuration {
+                        message: "Failed to parse custom configuration".to_string(),
+                        config_key: Some(key.to_string()),
+                        source: Some(e.into()),
+                    })?;
+                
+                Ok(custom_data.get(key).cloned())
+            },
+            Err(_) => {
+                // Custom config file doesn't exist yet
+                Ok(None)
+            }
+        }
+    }
+
+    /// Set a custom field in a separate custom config file
+    pub async fn set_custom_field(&self, key: &str, value: impl Into<serde_json::Value>) -> MindLinkResult<()> {
+        let custom_config_path = self.config_path.with_file_name("custom.json");
+        
+        // Load existing custom data or create empty object
+        let mut custom_data: serde_json::Map<String, serde_json::Value> = match fs::read_to_string(&custom_config_path).await {
+            Ok(content) => {
+                serde_json::from_str(&content)
+                    .map_err(|e| MindLinkError::Configuration {
+                        message: "Failed to parse existing custom configuration".to_string(),
+                        config_key: Some(key.to_string()),
+                        source: Some(e.into()),
+                    })?
+            },
+            Err(_) => serde_json::Map::new(),
+        };
+        
+        // Set the value
+        custom_data.insert(key.to_string(), value.into());
+        
+        // Save back to file
+        let json = serde_json::to_string_pretty(&custom_data)
+            .map_err(|e| MindLinkError::Configuration {
+                message: "Failed to serialize custom configuration".to_string(),
+                config_key: Some(key.to_string()),
+                source: Some(e.into()),
+            })?;
+        
+        fs::write(&custom_config_path, json)
+            .await
+            .map_err(|e| MindLinkError::FileSystem {
+                message: "Failed to save custom configuration".to_string(),
+                path: Some(custom_config_path.to_string_lossy().to_string()),
+                operation: "write custom config".to_string(),
+                source: Some(e.into()),
+            })?;
+        
+        log_info!(
+            "ConfigManager",
+            format!("Custom field '{}' saved successfully", key)
+        );
+        
+        Ok(())
+    }
 }

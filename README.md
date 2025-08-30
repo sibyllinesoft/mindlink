@@ -460,11 +460,23 @@ MindLink implements enterprise-grade security and privacy protections:
 - **Vulnerability Disclosure**: Responsible security reporting process
 - **Third-Party Audits**: Regular security assessments and penetration testing
 
+## 📚 Documentation
+
+MindLink includes comprehensive documentation covering all aspects from basic usage to advanced development:
+
+- **📖 [Complete Documentation](docs/README.md)** - Full documentation index and navigation
+- **👤 [User Guide](docs/USER_GUIDE.md)** - Installation, configuration, and usage
+- **🔌 [API Reference](docs/API.md)** - Complete OpenAI-compatible API documentation  
+- **🏗️ [Architecture Guide](docs/ARCHITECTURE.md)** - System design and technical architecture
+- **💻 [Development Guide](docs/DEVELOPMENT.md)** - Contributing and development workflows
+- **🚢 [Deployment Guide](docs/DEPLOYMENT.md)** - Building and distributing MindLink
+- **🔧 [Troubleshooting](docs/TROUBLESHOOTING.md)** - Problem-solving and debugging
+
 ## Support & Community
 
 ### Getting Help
 
-- **📖 Documentation**: Comprehensive guides at [docs.mindlink.dev](https://docs.mindlink.dev)
+- **📖 Documentation**: Start with our [comprehensive docs](docs/README.md)
 - **🐛 Bug Reports**: [GitHub Issues](https://github.com/yourusername/mindlink/issues) for technical problems
 - **💬 Community**: [GitHub Discussions](https://github.com/yourusername/mindlink/discussions) for questions and ideas
 - **📧 Direct Support**: [support@mindlink.dev](mailto:support@mindlink.dev) for enterprise inquiries

@@ -43,11 +43,12 @@ use crate::{log_debug, log_error, log_info, network_error};
 use axum::{
     body::Body,
     extract::State,
-    http::StatusCode,
+    http::{Request, StatusCode},
     response::{Html, IntoResponse, Json, Response},
     routing::{get, post},
     Router,
 };
+use tower_http::services::ServeDir;
 use futures_util::stream::StreamExt;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
@@ -381,10 +382,16 @@ fn create_router(state: AppState) -> Router {
         // OpenAI-compatible API endpoints
         .route("/v1/models", get(get_models))
         .route("/v1/chat/completions", post(chat_completions))
+        // Test route to debug routing
+        .route("/test", get(test_handler))
+        // Static file routes - must come BEFORE catch-all routes
+        .route("/app.js", get(serve_static_file))
+        .route("/styles.css", get(serve_static_file))
+        .route("/settings.js", get(serve_static_file))
+        .route("/settings.html", get(serve_static_file))
         // Health and status endpoints
         .route("/health", get(health_check))
         .route("/dashboard", get(dashboard))
-        .route("/", get(root_handler))
         .with_state(state)
         .layer(
             ServiceBuilder::new()
@@ -409,18 +416,16 @@ async fn health_check() -> impl IntoResponse {
     }))
 }
 
-/// Root endpoint with basic info
+/// Root endpoint - redirects to serve index.html
 async fn root_handler() -> impl IntoResponse {
-    Json(serde_json::json!({
-        "service": "MindLink API Server",
-        "version": "1.0.0",
-        "endpoints": {
-            "models": "/v1/models",
-            "chat": "/v1/chat/completions",
-            "health": "/health",
-            "dashboard": "/dashboard"
-        }
-    }))
+    log_info!("ServerManager", "Root handler called");
+    // This will be handled by the fallback static file service
+    // But let's serve index.html directly here for the root route
+    let file_path = std::path::Path::new("../dist/index.html");
+    match tokio::fs::read_to_string(file_path).await {
+        Ok(content) => Html(content),
+        Err(_) => Html("<h1>MindLink Dashboard</h1><p>Frontend files not found</p>".to_string()),
+    }
 }
 
 /// Dashboard HTML page
@@ -1106,3 +1111,41 @@ fn create_error_response(status: StatusCode, message: &str) -> Response<Body> {
 
     (status, Json(error_json)).into_response()
 }
+
+/// Test handler to debug routing
+async fn test_handler() -> impl IntoResponse {
+    log_info!("ServerManager", "Test handler called successfully!");
+    "TEST ROUTE WORKS"
+}
+
+/// Generic static file handler
+async fn serve_static_file(request: Request<Body>) -> impl IntoResponse {
+    let path = request.uri().path();
+    let file_name = path.trim_start_matches('/');
+    let file_path = format!("../dist/{}", file_name);
+    
+    log_info!("ServerManager", &format!("Serving static file: {} -> {}", path, file_path));
+    
+    match tokio::fs::read_to_string(&file_path).await {
+        Ok(content) => {
+            let content_type = match file_name {
+                name if name.ends_with(".js") => "application/javascript",
+                name if name.ends_with(".css") => "text/css",
+                name if name.ends_with(".html") => "text/html",
+                _ => "text/plain",
+            };
+            
+            (
+                StatusCode::OK,
+                [("content-type", content_type)],
+                content
+            )
+        }
+        Err(_) => (
+            StatusCode::NOT_FOUND,
+            [("content-type", "text/plain")],
+            "File not found".to_string()
+        ),
+    }
+}
+

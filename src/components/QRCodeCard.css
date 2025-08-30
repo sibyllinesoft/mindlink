@@ -1,0 +1,140 @@
+/* QR Code Card Styles */
+
+.qr-code-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.qr-code-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-3);
+  background: var(--color-surface-secondary);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: var(--radius-lg);
+  transition: var(--transition-colors);
+}
+
+.qr-code-wrapper:hover {
+  background: var(--color-surface-card-hover);
+  border-color: var(--color-border-primary);
+}
+
+.qr-code {
+  border-radius: var(--radius-base);
+  /* Ensure QR code is properly sized */
+  width: 140px !important;
+  height: 140px !important;
+}
+
+.qr-code-status {
+  text-align: center;
+  max-width: 240px;
+}
+
+.qr-scan-text {
+  font-size: var(--text-xs);
+}
+
+.qr-code-actions {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.qr-code-actions .btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 100px;
+  justify-content: center;
+}
+
+.qr-code-actions .btn__icon {
+  width: var(--size-icon-xs);
+  height: var(--size-icon-xs);
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .qr-code-wrapper {
+    padding: var(--space-3);
+  }
+  
+  .qr-code {
+    width: 120px !important;
+    height: 120px !important;
+  }
+  
+  .qr-code-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .qr-code-actions .btn {
+    width: 100%;
+  }
+}
+
+/* QR Code specific styling for clean black and white contrast */
+.qr-code-wrapper svg {
+  background: #ffffff !important;
+  border-radius: var(--radius-base);
+  padding: var(--space-2);
+}
+
+/* Ensure QR code has crisp black squares on white background */
+.qr-code-wrapper svg path {
+  fill: #000000 !important;
+}
+
+.qr-code-wrapper svg rect {
+  fill: #000000 !important;
+}
+
+/* White background areas */
+.qr-code-wrapper svg rect[fill="#ffffff"],
+.qr-code-wrapper svg rect[fill="white"],
+.qr-code-wrapper svg path[fill="#ffffff"],
+.qr-code-wrapper svg path[fill="white"] {
+  fill: #ffffff !important;
+}
+
+/* Remove any gradients or patterns that might create circuit board effect */
+.qr-code-wrapper svg * {
+  stroke: none !important;
+  stroke-width: 0 !important;
+  opacity: 1 !important;
+}
+
+/* Status indicator animation for the QR card */
+.qr-code-container .status-badge {
+  animation: qr-pulse 2s ease-in-out infinite;
+}
+
+.qr-code-container .status-badge--success {
+  animation: qr-pulse-success 3s ease-in-out infinite;
+}
+
+@keyframes qr-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+@keyframes qr-pulse-success {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}

@@ -1,0 +1,199 @@
+/* Dashboard - Professional Network Tool Layout */
+
+.dashboard {
+  padding: var(--space-6);
+  height: 100%;
+  overflow-y: auto;
+  background: var(--color-surface-primary);
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-6);
+  max-width: var(--layout-content-max-width);
+  margin: 0 auto;
+}
+
+.dashboard-section {
+  min-height: 0; /* Allow flex items to shrink */
+}
+
+.dashboard-section-wide {
+  grid-column: 1 / -1; /* Span full width */
+}
+
+/* Professional Card Enhancements for Dashboard */
+.dashboard .card {
+  height: fit-content;
+  transition: var(--transition-transform), var(--transition-shadow);
+}
+
+.dashboard .card:hover {
+  transform: translateY(-2px);
+}
+
+/* Server Status Card Styling */
+.dashboard .card .connection-indicator {
+  color: var(--color-status-connected);
+}
+
+.dashboard .card .connection-indicator--error {
+  color: var(--color-status-error);
+}
+
+/* Status Badge Enhancements */
+.dashboard .status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Code Display Enhancements */
+.dashboard .code-block {
+  background: var(--color-surface-primary);
+  border: 1px solid var(--color-border-secondary);
+}
+
+.dashboard .code-block .flex {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-sm);
+}
+
+.dashboard .code-block span:first-child {
+  color: var(--color-text-tertiary);
+}
+
+/* Enhanced Connection Details */
+.dashboard .connection-details {
+  background: var(--color-surface-tertiary);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-secondary);
+}
+
+/* Loading States */
+.dashboard .card--loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.dashboard .card--loading::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--color-surface-overlay);
+  border-radius: inherit;
+}
+
+/* Network Professional Styling */
+.dashboard .card__header h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.dashboard .card__header h2::before {
+  content: '';
+  width: 0.25rem;
+  height: 1.5rem;
+  background: var(--color-accent-primary);
+  border-radius: var(--radius-full);
+}
+
+/* Card Header Flex Layout */
+.card__header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+/* Smaller text for status indicators */
+.text-sm {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Security Indicators */
+.text-success {
+  color: var(--color-status-connected);
+  font-weight: var(--font-weight-medium);
+}
+
+.text-warning {
+  color: var(--color-status-connecting);
+  font-weight: var(--font-weight-medium);
+}
+
+.text-error {
+  color: var(--color-status-error);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+    gap: var(--space-4);
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard {
+    padding: var(--space-4);
+  }
+  
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+  }
+  
+  .dashboard-section-wide {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .dashboard {
+    padding: var(--space-3);
+  }
+  
+  .dashboard-grid {
+    gap: var(--space-3);
+  }
+}
+
+/* Dark mode enhancements */
+@media (prefers-color-scheme: dark) {
+  .dashboard .card__header h2::before {
+    background: var(--color-accent-primary);
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.3);
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .dashboard .card {
+    border-width: 2px;
+    border-color: var(--color-border-primary);
+  }
+  
+  .dashboard .status-badge {
+    border-width: 2px;
+  }
+}
+
+/* Animation preferences */
+@media (prefers-reduced-motion: reduce) {
+  .dashboard .card {
+    transition: none;
+  }
+  
+  .dashboard .card:hover {
+    transform: none;
+  }
+}

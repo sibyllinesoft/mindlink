@@ -1,0 +1,278 @@
+/* Tunnel Control Component - Professional Network Tool Design */
+
+.tunnel-control__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.tunnel-control__title-with-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.tunnel-control__status-text {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tunnel-status {
+  margin-bottom: var(--space-6);
+}
+
+.tunnel-status__main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.tunnel-status__title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin: 0;
+  line-height: var(--line-height-tight);
+}
+
+.tunnel-status__description {
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+  margin: 0;
+}
+
+.tunnel-control__warning {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--color-status-connecting-bg);
+  border: 1px solid var(--color-status-connecting);
+  border-radius: var(--radius-md);
+  margin: var(--space-4) 0;
+}
+
+.tunnel-control__warning-icon {
+  font-size: var(--font-size-lg);
+  flex-shrink: 0;
+  margin-top: var(--space-1);
+}
+
+.tunnel-control__warning p {
+  margin: 0;
+}
+
+.tunnel-control__warning p:first-child {
+  margin-bottom: var(--space-1);
+}
+
+.tunnel-control__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+}
+
+.tunnel-control__connecting {
+  display: flex;
+  justify-content: center;
+}
+
+/* Enhanced Status Indicators for Tunnel */
+.tunnel-control .status-indicator {
+  font-size: var(--font-size-xs);
+  padding: var(--space-1) var(--space-2);
+}
+
+/* Tunnel Toggle Section */
+.tunnel-toggle-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--color-surface-tertiary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-md);
+  transition: var(--transition-colors);
+}
+
+.tunnel-toggle-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.tunnel-toggle-title {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* Tunnel Status Indicator - Custom version for toggle section */
+.tunnel-status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+}
+
+.tunnel-status-indicator__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.tunnel-status-indicator__text {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Status Colors for Tunnel Indicator */
+.tunnel-status-indicator--connected {
+  color: var(--color-status-connected);
+}
+
+.tunnel-status-indicator--connected .tunnel-status-indicator__dot {
+  background: var(--color-status-connected);
+  box-shadow: 0 0 4px rgba(5, 150, 105, 0.4);
+}
+
+.tunnel-status-indicator--connecting {
+  color: var(--color-status-connecting);
+}
+
+.tunnel-status-indicator--connecting .tunnel-status-indicator__dot {
+  background: var(--color-status-connecting);
+  animation: tunnel-connecting-pulse 1.5s ease-in-out infinite;
+}
+
+.tunnel-status-indicator--disconnected {
+  color: var(--color-status-disconnected);
+}
+
+.tunnel-status-indicator--disconnected .tunnel-status-indicator__dot {
+  background: var(--color-status-disconnected);
+}
+
+.tunnel-status-indicator--error {
+  color: var(--color-status-error);
+}
+
+.tunnel-status-indicator--error .tunnel-status-indicator__dot {
+  background: var(--color-status-error);
+  animation: tunnel-error-pulse 1s ease-in-out infinite;
+}
+
+/* Toggle Button Enhancements for Tunnel Control */
+.tunnel-control__actions .toggle-btn {
+  align-self: stretch;
+}
+
+.tunnel-control__actions .toggle-btn:hover {
+  background: var(--color-surface-card);
+  border-color: var(--color-accent-primary);
+}
+
+.tunnel-control__actions .toggle-btn__label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+/* Disabled State */
+.tunnel-control__actions .toggle-btn:has(.toggle-btn__input:disabled) {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.tunnel-control__actions .toggle-btn:has(.toggle-btn__input:disabled):hover {
+  background: var(--color-surface-tertiary);
+  border-color: var(--color-border-primary);
+}
+
+/* Security Focus Styling */
+.tunnel-control .card__footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.tunnel-control .card__footer::before {
+  content: '🔒';
+  font-size: var(--font-size-base);
+  opacity: 0.7;
+}
+
+/* Connection Animation */
+@keyframes tunnel-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(0.98);
+  }
+}
+
+.tunnel-control .status-indicator--connecting .status-indicator__dot {
+  animation: tunnel-pulse 2s ease-in-out infinite;
+}
+
+/* Tunnel Status Indicator Animations */
+@keyframes tunnel-connecting-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes tunnel-error-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+  .tunnel-control__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+  
+  .tunnel-toggle-section {
+    padding: var(--space-3);
+  }
+  
+  .tunnel-toggle-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+  
+  .tunnel-control__actions .toggle-btn {
+    align-self: stretch;
+    text-align: left;
+  }
+  
+  .tunnel-control__warning {
+    padding: var(--space-2);
+    gap: var(--space-2);
+  }
+}

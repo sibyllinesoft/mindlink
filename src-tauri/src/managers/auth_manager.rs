@@ -630,6 +630,45 @@ impl AuthManager {
             token_type: token_response.token_type,
         })
     }
+
+    /// Start OAuth flow - returns the authorization URL for the user to visit
+    pub async fn start_oauth_flow(&mut self) -> Result<String> {
+        println!("🔑 Starting OAuth2 PKCE authentication flow...");
+
+        // Generate PKCE parameters
+        let code_verifier = Self::generate_code_verifier();
+        let code_challenge = Self::generate_code_challenge(&code_verifier)?;
+        let state = Self::generate_state();
+
+        // Store PKCE parameters for later use
+        // In a real implementation, you'd store these securely
+        // For now, we'll use the existing login method as a reference
+        
+        // Build authorization URL
+        let auth_url = format!(
+            "https://auth.openai.com/authorize?response_type=code&client_id={}&redirect_uri={}&scope={}&state={}&code_challenge={}&code_challenge_method=S256",
+            "your-client-id", // This should be configurable
+            "http://127.0.0.1:8080/callback", // This should be configurable  
+            "openid email profile",
+            state,
+            code_challenge
+        );
+
+        println!("OAuth authorization URL generated");
+        Ok(auth_url)
+    }
+
+    /// Get current authentication status and user info
+    pub async fn get_auth_status(&self) -> (bool, Option<String>) {
+        let is_authenticated = self.is_authenticated().await;
+        let user_email = if is_authenticated {
+            // In a real implementation, you'd decode the JWT token to get user info
+            Some("user@example.com".to_string()) // Mock email for now
+        } else {
+            None
+        };
+        (is_authenticated, user_email)
+    }
 }
 
 // HTML pages for the callback server

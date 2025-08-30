@@ -1,0 +1,374 @@
+/* OAuth Modal Styles - Graphite Design System Integration */
+
+.oauth-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--color-surface-overlay);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-index-modal);
+  animation: oauthModalBackdropFadeIn var(--transition-base);
+}
+
+.oauth-modal {
+  width: 100%;
+  max-width: 480px;
+  margin: var(--space-4);
+  background: var(--color-surface-secondary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-2xl);
+  animation: oauthModalSlideIn var(--transition-slow);
+  overflow: hidden;
+}
+
+.oauth-modal__content {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.oauth-modal__header {
+  padding: var(--space-8) var(--space-8) var(--space-6);
+  border-bottom: 1px solid var(--color-border-secondary);
+  background: var(--color-surface-tertiary);
+}
+
+.oauth-modal__logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-4);
+}
+
+.oauth-modal__cloudflare-icon {
+  width: 64px;
+  height: 64px;
+  padding: var(--space-4);
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-xl);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border-primary);
+}
+
+.oauth-modal__title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin: 0;
+  line-height: var(--line-height-tight);
+}
+
+/* Body */
+.oauth-modal__body {
+  padding: var(--space-8);
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.oauth-modal__description {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-relaxed);
+  margin: 0 0 var(--space-6) 0;
+  text-align: center;
+}
+
+.oauth-modal__features {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.oauth-modal__feature {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--color-surface-card);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-secondary);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.oauth-modal__feature-icon {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-accent-primary);
+  flex-shrink: 0;
+}
+
+/* Status States */
+.oauth-modal__status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-4);
+}
+
+.oauth-modal__status h3 {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.oauth-modal__status p {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-relaxed);
+  margin: 0;
+}
+
+/* Loading State */
+.oauth-modal__status--loading {
+  color: var(--color-text-secondary);
+}
+
+.oauth-modal__spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--color-surface-tertiary);
+  border-top: 3px solid var(--color-accent-primary);
+  border-radius: var(--radius-full);
+  animation: oauthModalSpin 1s linear infinite;
+}
+
+/* Waiting State */
+.oauth-modal__status--waiting {
+  color: var(--color-text-secondary);
+}
+
+.oauth-modal__pulse-icon {
+  width: 48px;
+  height: 48px;
+  color: var(--color-accent-primary);
+  animation: oauthModalPulse 2s infinite;
+}
+
+.oauth-modal__waiting-steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
+  text-align: left;
+}
+
+.oauth-modal__step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--color-surface-card);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-secondary);
+}
+
+.oauth-modal__step-number {
+  width: 24px;
+  height: 24px;
+  background: var(--color-accent-primary);
+  color: white;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  flex-shrink: 0;
+}
+
+.oauth-modal__waiting-hint {
+  padding: var(--space-3);
+  background: var(--color-surface-card);
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--color-accent-primary);
+  margin-top: var(--space-4);
+}
+
+.oauth-modal__waiting-hint small {
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-sm);
+}
+
+/* Success State */
+.oauth-modal__status--success {
+  color: var(--color-status-connected);
+}
+
+.oauth-modal__success-icon {
+  animation: oauthModalBounceIn 0.6s ease-out;
+}
+
+/* Error State */
+.oauth-modal__status--error {
+  color: var(--color-status-error);
+}
+
+.oauth-modal__error-icon {
+  animation: oauthModalShake 0.6s ease-out;
+}
+
+/* Footer */
+.oauth-modal__footer {
+  padding: var(--space-6) var(--space-8) var(--space-8);
+  display: flex;
+  gap: var(--space-3);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.oauth-modal__auth-button {
+  min-width: 200px;
+  font-weight: var(--font-weight-medium);
+}
+
+/* Animations */
+@keyframes oauthModalBackdropFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes oauthModalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes oauthModalSpin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes oauthModalPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes oauthModalBounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes oauthModalShake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-5px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(5px);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+  .oauth-modal {
+    margin: var(--space-2);
+    max-width: none;
+  }
+
+  .oauth-modal__header {
+    padding: var(--space-6) var(--space-6) var(--space-4);
+  }
+
+  .oauth-modal__body {
+    padding: var(--space-6);
+    min-height: 160px;
+  }
+
+  .oauth-modal__footer {
+    padding: var(--space-4) var(--space-6) var(--space-6);
+    flex-direction: column;
+  }
+
+  .oauth-modal__auth-button {
+    min-width: auto;
+    width: 100%;
+  }
+
+  .oauth-modal__title {
+    font-size: var(--font-size-xl);
+  }
+
+  .oauth-modal__cloudflare-icon {
+    width: 56px;
+    height: 56px;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .oauth-modal {
+    border-width: 2px;
+  }
+  
+  .oauth-modal__cloudflare-icon {
+    border-width: 2px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .oauth-modal-backdrop,
+  .oauth-modal,
+  .oauth-modal__spinner,
+  .oauth-modal__pulse-icon,
+  .oauth-modal__success-icon,
+  .oauth-modal__error-icon {
+    animation: none;
+  }
+
+  .oauth-modal-backdrop {
+    opacity: 1;
+  }
+
+  .oauth-modal {
+    transform: none;
+  }
+}

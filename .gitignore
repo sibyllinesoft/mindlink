@@ -19,20 +19,41 @@ node_modules/
 .DS_Store
 Thumbs.db
 
-# Logs
+# Logs and runtime data
 *.log
 logs/
+cache/
+data/
 
-# Temporary files
+# Temporary files and backups
 *.tmp
 *.swp
 *.swo
 *~
+*.py~
+*.sh~
+*-clean.*
+
+# Scripts and utilities (keep only essential ones)
+*.py
+*.sh
+create-*
+generate-*
+fix-*
+verify-*
 
 # MindLink specific
 .mindlink/
 auth.json
 *.key
+cloudflared
+cloudflared.deb
+
+# Analysis and documentation tools
+.scribeignore
+scribe.config.json
+scribe_analysis.json
+*.analysis.json
 
 # Claude Code temporary files and backups
 .claude-temp/
@@ -58,4 +79,10 @@ binaries/
 coverage/
 test-results/
 
+# Serena and development tools
 .serena/
+.playwright-mcp/
+
+# Storybook
+*storybook.log
+storybook-static/

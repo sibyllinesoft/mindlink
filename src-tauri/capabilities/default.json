@@ -24,6 +24,13 @@
     "fs:allow-create",
     "fs:allow-exists",
     "fs:allow-read-dir",
+    "fs:allow-remove",
+    "fs:allow-rename",
+    "fs:allow-copy-file",
+    "fs:allow-download-read",
+    "fs:allow-download-write", 
+    "fs:allow-home-read",
+    "fs:allow-home-write",
     "http:default"
   ]
 }

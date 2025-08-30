@@ -1,0 +1,42 @@
+.server-control {
+  height: fit-content;
+}
+
+.server-status {
+  margin-bottom: 1.5rem;
+}
+
+.server-info {
+  margin-top: 0.5rem;
+}
+
+.auth-warning {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.auth-warning p:first-child {
+  color: #d97706;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.server-controls {
+  margin-bottom: 1.5rem;
+}
+
+.server-controls .btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.server-description {
+  font-size: 0.875rem;
+}
+
+.server-description p {
+  margin: 0;
+}

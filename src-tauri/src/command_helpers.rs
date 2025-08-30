@@ -45,6 +45,7 @@ impl CommandErrorHandler {
             message: Some(error.user_message()),
             server_url: None,
             tunnel_url: None,
+            auth_url: None,
         }
     }
 
@@ -205,6 +206,7 @@ pub fn success_response(
         message: Some(message.to_string()),
         server_url,
         tunnel_url,
+        auth_url: None,
     }
 }
 
@@ -215,6 +217,7 @@ pub fn error_response(message: &str) -> ServiceResponse {
         message: Some(message.to_string()),
         server_url: None,
         tunnel_url: None,
+        auth_url: None,
     }
 }
 

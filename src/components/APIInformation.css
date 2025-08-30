@@ -1,0 +1,151 @@
+.api-information h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: #374151;
+}
+
+.api-endpoints {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.endpoint-section {
+  /* Individual endpoint section styles */
+}
+
+.endpoint-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.endpoint {
+  flex: 1;
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  padding: 0.75rem;
+  border-radius: 6px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.875rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.endpoint.active {
+  background: #ecfdf5;
+  border-color: #10b981;
+  color: #065f46;
+}
+
+.endpoint.inactive {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+
+.copy-btn {
+  flex-shrink: 0;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  min-width: 60px;
+}
+
+.endpoint-description {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.api-usage {
+  margin-bottom: 2rem;
+}
+
+.code-block {
+  position: relative;
+  background: #1f2937;
+  color: #f9fafb;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.code-block pre {
+  margin: 0;
+  padding: 1.5rem;
+  overflow-x: auto;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.copy-example {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  font-size: 0.75rem;
+  padding: 0.375rem 0.75rem;
+}
+
+.copy-example:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.api-features {
+  /* API features section */
+}
+
+.feature-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.feature-list li {
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+@media (max-width: 768px) {
+  .api-endpoints {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .endpoint-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .copy-btn {
+    align-self: flex-end;
+    min-width: auto;
+    width: fit-content;
+  }
+  
+  .feature-list {
+    grid-template-columns: 1fr;
+  }
+  
+  .copy-example {
+    position: static;
+    margin: 0.75rem;
+    width: fit-content;
+    align-self: flex-end;
+  }
+  
+  .code-block {
+    display: flex;
+    flex-direction: column;
+  }
+}

@@ -121,7 +121,7 @@ impl TunnelManager {
         stdout: tokio::process::ChildStdout,
         stderr: tokio::process::ChildStderr,
     ) -> Result<String> {
-        let url_regex = Regex::new(r"https://[a-zA-Z0-9-]+\.trycloudflare\.com")
+        let url_regex = Regex::new(r"https://[a-zA-Z0-9\-]+\.trycloudflare\.com")
             .map_err(|e| anyhow!("Failed to compile regex: {}", e))?;
 
         let stdout_reader = BufReader::new(stdout);
@@ -153,6 +153,25 @@ impl TunnelManager {
                         if let Ok(Some(line)) = stderr_line {
                             println!("cloudflared stderr: {}", line);
 
+                            // Look for tunnel URL in stderr (cloudflared outputs tunnel info to stderr)
+                            if let Some(captures) = url_regex.find(&line) {
+                                println!("🎯 Found tunnel URL in stderr: {}", captures.as_str());
+                                return Ok(captures.as_str().to_string());
+                            }
+
+                            // Also check for the boxed format specifically
+                            if line.contains("Visit it at") || line.contains("trycloudflare.com") {
+                                if let Some(captures) = url_regex.find(&line) {
+                                    println!("🎯 Found tunnel URL in boxed format: {}", captures.as_str());
+                                    return Ok(captures.as_str().to_string());
+                                }
+                            }
+
+                            // Check for connection success indicators in stderr
+                            if line.contains("Registered tunnel connection") {
+                                println!("✅ Tunnel connection registered successfully");
+                            }
+
                             // Check for specific error conditions
                             if line.contains("connection refused") || line.contains("no such host") {
                                 return Err(anyhow!("Local server not accessible: {}", line));
@@ -162,7 +181,7 @@ impl TunnelManager {
                                 return Err(anyhow!("Cloudflare authentication required: {}", line));
                             }
 
-                            if line.contains("failed") && line.contains("tunnel") {
+                            if line.contains("failed") && line.contains("tunnel") && !line.contains("connection") {
                                 return Err(anyhow!("Tunnel creation failed: {}", line));
                             }
                         }
@@ -326,6 +345,82 @@ impl TunnelManager {
         }
 
         self.local_port = port;
+    }
+
+    /// Create a permanent named tunnel that persists across restarts
+    pub async fn create_permanent_tunnel(&mut self, tunnel_name: &str) -> Result<String> {
+        println!("🚇 Creating permanent tunnel: {}", tunnel_name);
+
+        // Close existing tunnel if any
+        if *self.is_connected.read().await {
+            self.close_tunnel().await?;
+            tokio::time::sleep(Duration::from_secs(2)).await;
+        }
+
+        // Create tunnel with specific name
+        let cloudflared_path = self.ensure_cloudflared().await?;
+        
+        let mut child = Command::new(&cloudflared_path)
+            .args(&[
+                "tunnel",
+                "--url", &format!("http://127.0.0.1:{}", self.local_port),
+                "--name", tunnel_name,
+                "--no-autoupdate",
+            ])
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .kill_on_drop(true)
+            .spawn()
+            .map_err(|e| anyhow!("Failed to spawn cloudflared process: {}", e))?;
+
+        // Wait for tunnel to establish and extract URL
+        let mut attempts = 0;
+        let max_attempts = 30; // 30 seconds max
+        
+        while attempts < max_attempts {
+            if let Some(stderr) = child.stderr.as_mut() {
+                use tokio::io::{AsyncBufReadExt, BufReader};
+                let mut reader = BufReader::new(stderr);
+                let mut line = String::new();
+                
+                match tokio::time::timeout(Duration::from_secs(1), reader.read_line(&mut line)).await {
+                    Ok(Ok(_)) => {
+                        if line.contains("https://") && line.contains(".trycloudflare.com") {
+                            // Extract URL from line
+                            if let Some(start) = line.find("https://") {
+                                if let Some(end) = line[start..].find(" ") {
+                                    let url = &line[start..start + end];
+                                    println!("✅ Permanent tunnel established: {}", url);
+                                    
+                                    // Store tunnel info
+                                    *self.current_url.write().await = Some(url.to_string());
+                                    *self.is_connected.write().await = true;
+                                    *self.process.write().await = Some(child);
+                                    
+                                    return Ok(url.to_string());
+                                } else {
+                                    // URL goes to end of line
+                                    let url = line[start..].trim();
+                                    println!("✅ Permanent tunnel established: {}", url);
+                                    
+                                    *self.current_url.write().await = Some(url.to_string());
+                                    *self.is_connected.write().await = true;
+                                    *self.process.write().await = Some(child);
+                                    
+                                    return Ok(url.to_string());
+                                }
+                            }
+                        }
+                    }
+                    _ => {
+                        attempts += 1;
+                        tokio::time::sleep(Duration::from_millis(1000)).await;
+                    }
+                }
+            }
+        }
+
+        Err(anyhow::anyhow!("Failed to establish permanent tunnel after {} attempts", max_attempts))
     }
 }
 
