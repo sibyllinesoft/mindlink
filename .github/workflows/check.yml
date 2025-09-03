@@ -1,0 +1,360 @@
+name: 'Quality Gates & Validation'
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Frontend Quality Gates
+  frontend-quality:
+    name: 'Frontend Quality Gates'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check TypeScript compilation
+        run: npm run typecheck
+
+      - name: ESLint validation
+        run: npm run lint
+
+      - name: Prettier format check
+        run: npx prettier --check "src/**/*.{js,jsx,ts,tsx,json,css,md}"
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Validate Storybook build
+        run: npm run build-storybook
+
+      - name: Frontend bundle analysis
+        run: |
+          BUNDLE_SIZE=$(du -sh dist/ | cut -f1)
+          echo "Frontend bundle size: $BUNDLE_SIZE"
+          echo "FRONTEND_BUNDLE_SIZE=$BUNDLE_SIZE" >> $GITHUB_ENV
+
+  # Backend Quality Gates  
+  backend-quality:
+    name: 'Backend Quality Gates'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          key: quality-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Check Rust formatting
+        run: |
+          cd src-tauri
+          cargo fmt --check --verbose
+        
+      - name: Run Clippy with strict linting
+        run: |
+          cd src-tauri
+          cargo clippy --all-targets --all-features --verbose -- -D warnings
+        env:
+          RUSTFLAGS: "-Dwarnings"
+
+      - name: Validate Cargo.toml and lockfile
+        run: |
+          cd src-tauri
+          cargo check --locked --all-features --verbose
+
+      - name: Generate documentation
+        run: |
+          cd src-tauri
+          cargo doc --all-features --document-private-items --no-deps --verbose
+        env:
+          RUSTDOCFLAGS: "-D warnings"
+
+  # Comprehensive Testing
+  testing:
+    name: 'Test Suite Execution'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          key: testing-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Run unit tests
+        run: |
+          cd src-tauri
+          cargo test --verbose --all-features
+
+      - name: Run integration tests
+        run: |
+          cd src-tauri
+          cargo test --test '*' --verbose --all-features
+
+      - name: Run documentation tests
+        run: |
+          cd src-tauri
+          cargo test --doc --verbose --all-features
+
+  # Coverage Analysis
+  coverage:
+    name: 'Coverage Analysis'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          key: coverage-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install cargo-tarpaulin
+        run: cargo install cargo-tarpaulin
+
+      - name: Generate coverage report
+        run: |
+          cd src-tauri
+          cargo tarpaulin --verbose --all-features --workspace \
+            --timeout 180 --fail-under 80 \
+            --out xml json html \
+            --output-dir ../coverage
+        env:
+          RUST_LOG: info
+
+      - name: Verify coverage thresholds
+        run: |
+          cd coverage
+          COVERAGE=$(jq -r '.files | map(.coverage) | add / length' tarpaulin-report.json)
+          echo "Current coverage: ${COVERAGE}%"
+          
+          if (( $(echo "$COVERAGE < 80" | bc -l) )); then
+            echo "❌ Coverage ${COVERAGE}% is below minimum threshold of 80%"
+            exit 1
+          fi
+          
+          echo "✅ Coverage ${COVERAGE}% meets minimum threshold"
+          echo "COVERAGE_PERCENTAGE=${COVERAGE}" >> $GITHUB_ENV
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage/cobertura.xml
+          directory: ./coverage
+          flags: rust
+          name: rust-coverage
+          fail_ci_if_error: false
+          verbose: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-${{ github.run_number }}
+          path: coverage/
+          retention-days: 30
+
+      - name: Comment coverage on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const coverage = process.env.COVERAGE_PERCENTAGE;
+            const emoji = coverage >= 90 ? '🟢' : coverage >= 80 ? '🟡' : '🔴';
+            
+            const comment = `## 📊 Code Coverage Report
+            
+            ${emoji} **Current Coverage: ${coverage}%**
+            
+            - 🎯 **Target**: 85%
+            - ⚠️ **Minimum**: 80%
+            - 📈 **Status**: ${coverage >= 85 ? 'Meeting target ✅' : coverage >= 80 ? 'Above minimum ⚠️' : 'Below minimum ❌'}
+            
+            [📋 View Full Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+  # Security Validation
+  security:
+    name: 'Security Validation'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install security tools
+        run: |
+          cargo install cargo-audit
+          cargo install cargo-deny
+
+      - name: NPM security audit
+        run: npm audit --audit-level=moderate
+
+      - name: Rust security audit
+        run: |
+          cd src-tauri
+          cargo audit --deny warnings
+
+      - name: License and security compliance
+        run: |
+          cd src-tauri
+          cargo deny check
+
+      - name: SAST with Semgrep
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: >- 
+            p/security-audit
+            p/secrets
+            p/owasp-top-ten
+            p/rust
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+
+  # Quality Summary
+  quality-summary:
+    name: 'Quality Summary'
+    needs: [frontend-quality, backend-quality, testing, coverage, security]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Generate quality report
+        run: |
+          echo "## 🎯 Quality Gates Summary" > quality-report.md
+          echo "" >> quality-report.md
+          
+          # Check job results
+          FRONTEND_STATUS="${{ needs.frontend-quality.result }}"
+          BACKEND_STATUS="${{ needs.backend-quality.result }}"
+          TESTING_STATUS="${{ needs.testing.result }}"
+          COVERAGE_STATUS="${{ needs.coverage.result }}"
+          SECURITY_STATUS="${{ needs.security.result }}"
+          
+          # Generate status for each gate
+          echo "### Quality Gate Status" >> quality-report.md
+          echo "- **Frontend Quality**: $([ "$FRONTEND_STATUS" = "success" ] && echo "✅ PASSED" || echo "❌ FAILED")" >> quality-report.md
+          echo "- **Backend Quality**: $([ "$BACKEND_STATUS" = "success" ] && echo "✅ PASSED" || echo "❌ FAILED")" >> quality-report.md
+          echo "- **Test Suite**: $([ "$TESTING_STATUS" = "success" ] && echo "✅ PASSED" || echo "❌ FAILED")" >> quality-report.md
+          echo "- **Coverage**: $([ "$COVERAGE_STATUS" = "success" ] && echo "✅ PASSED (≥80%)" || echo "❌ FAILED (<80%)")" >> quality-report.md
+          echo "- **Security**: $([ "$SECURITY_STATUS" = "success" ] && echo "✅ PASSED" || echo "❌ FAILED")" >> quality-report.md
+          echo "" >> quality-report.md
+          
+          # Overall status
+          if [ "$FRONTEND_STATUS" = "success" ] && [ "$BACKEND_STATUS" = "success" ] && [ "$TESTING_STATUS" = "success" ] && [ "$COVERAGE_STATUS" = "success" ] && [ "$SECURITY_STATUS" = "success" ]; then
+            echo "### ✅ Overall Status: PASSED" >> quality-report.md
+            echo "All quality gates have passed. Code is ready for merge/deployment." >> quality-report.md
+          else
+            echo "### ❌ Overall Status: FAILED" >> quality-report.md
+            echo "One or more quality gates have failed. Please review and fix issues before merging." >> quality-report.md
+          fi
+          
+          cat quality-report.md
+
+      - name: Upload quality report
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-report-${{ github.run_number }}
+          path: quality-report.md
+          retention-days: 30
+
+      - name: Comment quality summary on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const results = {
+              frontend: '${{ needs.frontend-quality.result }}',
+              backend: '${{ needs.backend-quality.result }}',
+              testing: '${{ needs.testing.result }}',
+              coverage: '${{ needs.coverage.result }}',
+              security: '${{ needs.security.result }}'
+            };
+            
+            const passed = Object.values(results).filter(r => r === 'success').length;
+            const total = Object.keys(results).length;
+            const allPassed = passed === total;
+            
+            const statusEmoji = allPassed ? '✅' : '❌';
+            const statusText = allPassed ? 'ALL PASSED' : `${passed}/${total} PASSED`;
+            
+            const comment = `## 🎯 Quality Gates Summary
+            
+            ${statusEmoji} **Status: ${statusText}**
+            
+            | Gate | Status |
+            |------|--------|
+            | Frontend Quality | ${results.frontend === 'success' ? '✅' : '❌'} |
+            | Backend Quality | ${results.backend === 'success' ? '✅' : '❌'} |
+            | Test Suite | ${results.testing === 'success' ? '✅' : '❌'} |
+            | Coverage Analysis | ${results.coverage === 'success' ? '✅' : '❌'} |
+            | Security Validation | ${results.security === 'success' ? '✅' : '❌'} |
+            
+            ${allPassed ? '🎉 All quality gates passed! Ready for merge.' : '⚠️ Please fix failing quality gates before merging.'}
+            
+            [📋 View Detailed Results](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });

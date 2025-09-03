@@ -1,0 +1,134 @@
+
+> mindlink@1.0.0 typecheck
+> tsc --noEmit
+
+.storybook/tauri-mocks.ts(175,7): error TS2322: Type 'null' is not assignable to type 'string'.
+.storybook/tauri-mocks.ts(184,7): error TS2322: Type 'null' is not assignable to type 'string'.
+.storybook/tauri-mocks.ts(193,7): error TS2322: Type 'null' is not assignable to type 'string'.
+src/App.tsx(6,15): error TS6196: 'StatusResponse' is declared but never used.
+src/components/App.stories.tsx(87,35): error TS2339: Property '__TAURI_INVOKE__' does not exist on type 'Window & typeof globalThis'.
+src/components/App.stories.tsx(88,12): error TS2339: Property '__TAURI_INVOKE__' does not exist on type 'Window & typeof globalThis'.
+src/components/App.stories.tsx(187,14): error TS2339: Property '__TAURI_INVOKE__' does not exist on type 'Window & typeof globalThis'.
+src/components/AppDetailsModal.tsx(1,17): error TS6133: 'useState' is declared but its value is never read.
+src/components/AppDetailsModal.tsx(1,27): error TS6133: 'useEffect' is declared but its value is never read.
+src/components/AppDetailsModal.tsx(2,74): error TS6133: 'AlertCircle' is declared but its value is never read.
+src/components/AppDetailsModal.tsx(2,87): error TS6133: 'RefreshCw' is declared but its value is never read.
+src/components/AppDetailsModal.tsx(3,1): error TS6192: All imports in import declaration are unused.
+src/components/AppsCard.tsx(2,28): error TS6133: 'Activity' is declared but its value is never read.
+src/components/AppsCard.tsx(2,38): error TS6133: 'Calendar' is declared but its value is never read.
+src/components/AppsCard.tsx(3,1): error TS6192: All imports in import declaration are unused.
+src/components/AppsCard.tsx(97,9): error TS6133: 'formatDate' is declared but its value is never read.
+src/components/BifrostButton.stories.tsx(118,33): error TS6133: 'args' is declared but its value is never read.
+src/components/BifrostButton.stories.tsx(120,35): error TS2339: Property '__TAURI_INVOKE__' does not exist on type 'Window & typeof globalThis'.
+src/components/BifrostButton.stories.tsx(121,12): error TS2339: Property '__TAURI_INVOKE__' does not exist on type 'Window & typeof globalThis'.
+src/components/BifrostButton.stories.tsx(136,14): error TS2339: Property '__TAURI_INVOKE__' does not exist on type 'Window & typeof globalThis'.
+src/components/Dashboard.tsx(27,3): error TS6133: 'serverStatus' is declared but its value is never read.
+src/components/Dashboard.tsx(30,3): error TS6133: 'isAuthenticated' is declared but its value is never read.
+src/components/Dashboard.tsx(31,3): error TS6133: 'onToggleTunnel' is declared but its value is never read.
+src/components/OAuthModal.stories.tsx(179,3): error TS2375: Type '{ isOpen: true; onCancel: undefined; }' is not assignable to type 'Partial<OAuthModalProps>' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'onCancel' are incompatible.
+    Type 'undefined' is not assignable to type '() => void'.
+src/components/OAuthModal.stories.tsx(270,18): error TS6133: 'canvasElement' is declared but its value is never read.
+src/components/OllamaConfigModal.tsx(58,19): error TS2345: Argument of type '(prev: OllamaConfig) => { selectedModel: string | undefined; baseUrl: string; timeout: number; }' is not assignable to parameter of type 'SetStateAction<OllamaConfig>'.
+  Type '(prev: OllamaConfig) => { selectedModel: string | undefined; baseUrl: string; timeout: number; }' is not assignable to type '(prevState: OllamaConfig) => OllamaConfig'.
+    Call signature return types '{ selectedModel: string | undefined; baseUrl: string; timeout: number; }' and 'OllamaConfig' are incompatible.
+      The types of 'selectedModel' are incompatible between these types.
+        Type 'string | undefined' is not assignable to type 'string | null'.
+          Type 'undefined' is not assignable to type 'string | null'.
+src/components/ProvidersCard.tsx(50,39): error TS18046: 'error' is of type 'unknown'.
+src/components/ProvidersCard.tsx(52,15): error TS18046: 'error' is of type 'unknown'.
+src/components/ProvidersCard.tsx(53,18): error TS18046: 'error' is of type 'unknown'.
+src/components/ProvidersCard.tsx(54,16): error TS18046: 'error' is of type 'unknown'.
+src/components/ProvidersCard.tsx(333,19): error TS2352: Conversion of type 'ProviderPlugin | undefined' to type 'OllamaPlugin' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'ProviderPlugin' is missing the following properties from type 'OllamaPlugin': baseUrl, detectionTimeout, selectedModel, config, and 12 more.
+src/components/QRCodeCard.stories.tsx(234,16): error TS6198: All destructured elements are unused.
+src/components/QRCodeCard.stories.tsx(252,40): error TS18048: 'state' is possibly 'undefined'.
+src/components/QRCodeCard.stories.tsx(252,56): error TS18048: 'state' is possibly 'undefined'.
+src/components/QRCodeCard.stories.tsx(255,31): error TS18048: 'state' is possibly 'undefined'.
+src/components/UnifiedNavigation.tsx(2,1): error TS6133: 'Settings' is declared but its value is never read.
+src/plugins/base-plugin.ts(79,34): error TS6133: 'token' is declared but its value is never read.
+src/plugins/dynamic-loader.ts(88,65): error TS2379: Argument of type 'OllamaPlugin' is not assignable to parameter of type 'ProviderPlugin' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'oauthConfig' are incompatible.
+    Type 'undefined' is not assignable to type 'OAuthConfig'.
+src/plugins/dynamic-loader.ts(191,11): error TS2375: Type 'OllamaPlugin' is not assignable to type 'ProviderPlugin' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'oauthConfig' are incompatible.
+    Type 'undefined' is not assignable to type 'OAuthConfig'.
+src/plugins/providers/anthropic.ts(13,12): error TS4114: This member must have an 'override' modifier because it overrides a member in the base class 'BaseProviderPlugin'.
+src/plugins/providers/anthropic.ts(14,12): error TS4114: This member must have an 'override' modifier because it overrides a member in the base class 'BaseProviderPlugin'.
+src/plugins/providers/anthropic.ts(17,12): error TS4114: This member must have an 'override' modifier because it overrides a member in the base class 'BaseProviderPlugin'.
+src/plugins/providers/anthropic.ts(20,63): error TS4111: Property 'ANTHROPIC_CLIENT_ID' comes from an index signature, so it must be accessed with ['ANTHROPIC_CLIENT_ID'].
+src/plugins/providers/anthropic.ts(27,19): error TS4114: This member must have an 'override' modifier because it overrides a member in the base class 'BaseProviderPlugin'.
+src/plugins/providers/anthropic.ts(32,72): error TS4111: Property 'ANTHROPIC_API_KEY' comes from an index signature, so it must be accessed with ['ANTHROPIC_API_KEY'].
+src/plugins/providers/anthropic.ts(33,33): error TS4111: Property 'ANTHROPIC_API_KEY' comes from an index signature, so it must be accessed with ['ANTHROPIC_API_KEY'].
+src/plugins/providers/anthropic.ts(38,9): error TS4114: This member must have an 'override' modifier because it overrides a member in the base class 'BaseProviderPlugin'.
+src/plugins/providers/anthropic.ts(44,56): error TS4111: Property 'ANTHROPIC_API_KEY' comes from an index signature, so it must be accessed with ['ANTHROPIC_API_KEY'].
+src/plugins/providers/anthropic.ts(45,26): error TS4111: Property 'ANTHROPIC_API_KEY' comes from an index signature, so it must be accessed with ['ANTHROPIC_API_KEY'].
+src/plugins/providers/anthropic.ts(51,19): error TS4114: This member must have an 'override' modifier because it overrides a member in the base class 'BaseProviderPlugin'.
+src/plugins/providers/anthropic.ts(55,19): error TS4114: This member must have an 'override' modifier because it overrides a member in the base class 'BaseProviderPlugin'.
+src/plugins/providers/anthropic.ts(115,13): error TS6133: 'supportedModels' is declared but its value is never read.
+src/plugins/providers/anthropic.ts(238,9): error TS4114: This member must have an 'override' modifier because it overrides a member in the base class 'BaseProviderPlugin'.
+src/plugins/providers/google.ts(13,12): error TS4114: This member must have an 'override' modifier because it overrides a member in the base class 'BaseProviderPlugin'.
+src/plugins/providers/google.ts(14,12): error TS4114: This member must have an 'override' modifier because it overrides a member in the base class 'BaseProviderPlugin'.
+src/plugins/providers/google.ts(17,12): error TS4114: This member must have an 'override' modifier because it overrides a member in the base class 'BaseProviderPlugin'.
+src/plugins/providers/google.ts(20,63): error TS4111: Property 'GOOGLE_CLIENT_ID' comes from an index signature, so it must be accessed with ['GOOGLE_CLIENT_ID'].
+src/plugins/providers/google.ts(27,19): error TS4114: This member must have an 'override' modifier because it overrides a member in the base class 'BaseProviderPlugin'.
+src/plugins/providers/google.ts(32,72): error TS4111: Property 'GOOGLE_API_KEY' comes from an index signature, so it must be accessed with ['GOOGLE_API_KEY'].
+src/plugins/providers/google.ts(33,33): error TS4111: Property 'GOOGLE_API_KEY' comes from an index signature, so it must be accessed with ['GOOGLE_API_KEY'].
+src/plugins/providers/google.ts(38,9): error TS4114: This member must have an 'override' modifier because it overrides a member in the base class 'BaseProviderPlugin'.
+src/plugins/providers/google.ts(44,56): error TS4111: Property 'GOOGLE_API_KEY' comes from an index signature, so it must be accessed with ['GOOGLE_API_KEY'].
+src/plugins/providers/google.ts(45,26): error TS4111: Property 'GOOGLE_API_KEY' comes from an index signature, so it must be accessed with ['GOOGLE_API_KEY'].
+src/plugins/providers/google.ts(51,19): error TS4114: This member must have an 'override' modifier because it overrides a member in the base class 'BaseProviderPlugin'.
+src/plugins/providers/google.ts(55,19): error TS4114: This member must have an 'override' modifier because it overrides a member in the base class 'BaseProviderPlugin'.
+src/plugins/providers/google.ts(124,48): error TS7006: Parameter 'name' implicitly has an 'any' type.
+src/plugins/providers/google.ts(125,46): error TS7006: Parameter 'name' implicitly has an 'any' type.
+src/plugins/providers/google.ts(197,74): error TS4111: Property 'GOOGLE_CLIENT_SECRET' comes from an index signature, so it must be accessed with ['GOOGLE_CLIENT_SECRET'].
+src/plugins/providers/google.ts(242,9): error TS4114: This member must have an 'override' modifier because it overrides a member in the base class 'BaseProviderPlugin'.
+src/plugins/providers/ollama.ts(8,14): error TS2415: Class 'OllamaPlugin' incorrectly extends base class 'BaseProviderPlugin'.
+  Types of property 'oauthConfig' are incompatible.
+    Type 'undefined' is not assignable to type 'OAuthConfig'.
+src/plugins/providers/ollama.ts(8,14): error TS2515: Non-abstract class 'OllamaPlugin' does not implement inherited abstract member name from class 'BaseProviderPlugin'.
+src/plugins/providers/ollama.ts(11,3): error TS4114: This member must have an 'override' modifier because it overrides a member in the base class 'BaseProviderPlugin'.
+src/plugins/providers/ollama.ts(16,3): error TS4114: This member must have an 'override' modifier because it overrides a member in the base class 'BaseProviderPlugin'.
+src/plugins/providers/ollama.ts(21,11): error TS6133: 'selectedModel' is declared but its value is never read.
+src/plugins/providers/ollama.ts(30,19): error TS4114: This member must have an 'override' modifier because it overrides a member in the base class 'BaseProviderPlugin'.
+src/plugins/providers/ollama.ts(234,9): error TS4114: This member must have an 'override' modifier because it overrides a member in the base class 'BaseProviderPlugin'.
+src/plugins/providers/ollama.ts(249,9): error TS4114: This member must have an 'override' modifier because it overrides a member in the base class 'BaseProviderPlugin'.
+src/plugins/providers/ollama.ts(259,9): error TS4114: This member must have an 'override' modifier because it overrides a member in the base class 'BaseProviderPlugin'.
+src/plugins/providers/ollama.ts(265,9): error TS4114: This member must have an 'override' modifier because it overrides a member in the base class 'BaseProviderPlugin'.
+src/plugins/providers/ollama.ts(270,9): error TS4114: This member must have an 'override' modifier because it overrides a member in the base class 'BaseProviderPlugin'.
+src/plugins/providers/openai.ts(14,12): error TS4114: This member must have an 'override' modifier because it overrides a member in the base class 'BaseProviderPlugin'.
+src/plugins/providers/openai.ts(15,12): error TS4114: This member must have an 'override' modifier because it overrides a member in the base class 'BaseProviderPlugin'.
+src/plugins/providers/openai.ts(18,12): error TS4114: This member must have an 'override' modifier because it overrides a member in the base class 'BaseProviderPlugin'.
+src/plugins/providers/openai.ts(21,63): error TS4111: Property 'OPENAI_CLIENT_ID' comes from an index signature, so it must be accessed with ['OPENAI_CLIENT_ID'].
+src/plugins/providers/openai.ts(28,19): error TS4114: This member must have an 'override' modifier because it overrides a member in the base class 'BaseProviderPlugin'.
+src/plugins/providers/openai.ts(33,72): error TS4111: Property 'OPENAI_API_KEY' comes from an index signature, so it must be accessed with ['OPENAI_API_KEY'].
+src/plugins/providers/openai.ts(34,33): error TS4111: Property 'OPENAI_API_KEY' comes from an index signature, so it must be accessed with ['OPENAI_API_KEY'].
+src/plugins/providers/openai.ts(39,9): error TS4114: This member must have an 'override' modifier because it overrides a member in the base class 'BaseProviderPlugin'.
+src/plugins/providers/openai.ts(45,56): error TS4111: Property 'OPENAI_API_KEY' comes from an index signature, so it must be accessed with ['OPENAI_API_KEY'].
+src/plugins/providers/openai.ts(46,26): error TS4111: Property 'OPENAI_API_KEY' comes from an index signature, so it must be accessed with ['OPENAI_API_KEY'].
+src/plugins/providers/openai.ts(52,19): error TS4114: This member must have an 'override' modifier because it overrides a member in the base class 'BaseProviderPlugin'.
+src/plugins/providers/openai.ts(56,19): error TS4114: This member must have an 'override' modifier because it overrides a member in the base class 'BaseProviderPlugin'.
+src/plugins/providers/openai.ts(150,45): error TS7006: Parameter 'id' implicitly has an 'any' type.
+src/plugins/providers/openai.ts(151,43): error TS7006: Parameter 'id' implicitly has an 'any' type.
+src/plugins/providers/openai.ts(255,9): error TS4114: This member must have an 'override' modifier because it overrides a member in the base class 'BaseProviderPlugin'.
+src/stories/Button.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/stories/Header.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/stories/Header.tsx(45,14): error TS2375: Type '{ size: "small"; onClick: (() => void) | undefined; label: string; }' is not assignable to type 'ButtonProps' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'onClick' are incompatible.
+    Type '(() => void) | undefined' is not assignable to type '() => void'.
+      Type 'undefined' is not assignable to type '() => void'.
+src/stories/Header.tsx(49,14): error TS2375: Type '{ size: "small"; onClick: (() => void) | undefined; label: string; }' is not assignable to type 'ButtonProps' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'onClick' are incompatible.
+    Type '(() => void) | undefined' is not assignable to type '() => void'.
+      Type 'undefined' is not assignable to type '() => void'.
+src/stories/Header.tsx(50,14): error TS2375: Type '{ primary: true; size: "small"; onClick: (() => void) | undefined; label: string; }' is not assignable to type 'ButtonProps' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'onClick' are incompatible.
+    Type '(() => void) | undefined' is not assignable to type '() => void'.
+      Type 'undefined' is not assignable to type '() => void'.
+src/stories/Page.tsx(15,8): error TS2375: Type '{ user: User | undefined; onLogin: () => void; onLogout: () => void; onCreateAccount: () => void; }' is not assignable to type 'HeaderProps' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'user' are incompatible.
+    Type 'User | undefined' is not assignable to type 'User'.
+      Type 'undefined' is not assignable to type 'User'.
+src/stories/design-system/Colors.stories.tsx(32,3): error TS6133: 'textColor' is declared but its value is never read.
+src/stories/design-system/Introduction.stories.tsx(80,3): error TS2322: Type '() => null' is not assignable to type 'ArgsStoryFn<ReactRenderer, {}>'.
+  Type 'null' is not assignable to type 'Element'.

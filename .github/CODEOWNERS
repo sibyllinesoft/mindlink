@@ -1,0 +1,55 @@
+# CODEOWNERS - Define code ownership and review requirements
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Global fallback - all files require review from repository maintainers
+* @nathan
+
+# Rust Backend and Core Logic
+/src-tauri/ @nathan
+/src-tauri/src/managers/ @nathan
+/src-tauri/Cargo.toml @nathan
+/src-tauri/Cargo.lock @nathan
+/src-tauri/tauri.conf.json @nathan
+
+# Frontend Application
+/src/ @nathan
+/src/components/ @nathan
+/src/services/ @nathan
+/src/plugins/ @nathan
+/package.json @nathan
+/package-lock.json @nathan
+
+# Build System and Dependencies
+/vite.config.ts @nathan
+/tsconfig.json @nathan
+/tsconfig.node.json @nathan
+/eslint.config.js @nathan
+
+# CI/CD and DevOps
+/.github/ @nathan
+/.github/workflows/ @nathan
+/scripts/ @nathan
+
+# Documentation and Guides
+/docs/ @nathan
+/README.md @nathan
+/CONTRIBUTING.md @nathan
+/LICENSE @nathan
+*.md @nathan
+
+# Storybook and Component Development
+/.storybook/ @nathan
+/src/stories/ @nathan
+
+# Configuration Files
+/.gitignore @nathan
+/.gitattributes @nathan
+
+# Security-sensitive files require extra scrutiny
+/src-tauri/src/managers/auth_manager.rs @nathan
+/src-tauri/src/managers/config_manager.rs @nathan
+/src-tauri/deny.toml @nathan
+
+# Release and Distribution
+/src-tauri/capabilities/ @nathan
+/src-tauri/icons/ @nathan
