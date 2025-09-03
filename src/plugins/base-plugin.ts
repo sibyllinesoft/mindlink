@@ -4,6 +4,86 @@ import { ProviderPlugin, ProviderStatus, ProviderConnectionInfo, OAuthConfig } f
  * Base class for OAuth provider plugins
  * Provides common functionality and default implementations
  */
+// Shared utility functions for provider implementations
+export class ProviderUtils {
+  static generateOAuthState(): string {
+    return Math.random().toString(36).substring(2, 15) + 
+           Math.random().toString(36).substring(2, 15)
+  }
+  
+  static formatLastUsed(dateString: string): string {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+    
+    if (diffHours < 1) return 'Just now'
+    if (diffHours < 24) return `${diffHours}h ago`
+    const diffDays = Math.floor(diffHours / 24)
+    return `${diffDays}d ago`
+  }
+  
+  static async getTokenWithEnvironmentFallback(
+    storedToken: string | null,
+    envVarName: string
+  ): Promise<string | null> {
+    if (storedToken) return storedToken
+    
+    // Check environment variable as fallback
+    if (typeof process !== 'undefined' && process.env?.[envVarName]) {
+      return process.env[envVarName]
+    }
+    
+    return null
+  }
+  
+  static createMockConnectionInfo(
+    providerId: string,
+    model: string,
+    plan: string = 'Free'
+  ): ProviderConnectionInfo {
+    return {
+      email: `user@${providerId}.com`,
+      model,
+      plan,
+      lastUsed: new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000).toISOString(),
+      tokensUsed: Math.floor(Math.random() * 15000) + 2000,
+      requestsToday: Math.floor(Math.random() * 50) + 5
+    }
+  }
+  
+  static async makeStandardOAuthTokenExchange(
+    tokenEndpoint: string,
+    code: string,
+    clientId: string,
+    redirectUri: string,
+    clientSecret?: string
+  ): Promise<string> {
+    const response = await fetch(tokenEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        grant_type: 'authorization_code',
+        code,
+        client_id: clientId,
+        redirect_uri: redirectUri,
+        ...(clientSecret && { client_secret: clientSecret })
+      })
+    })
+    
+    if (!response.ok) {
+      throw new Error(`OAuth token exchange failed: ${response.status}`)
+    }
+    
+    const data = await response.json()
+    return data.access_token
+  }
+}
+
+// Enhanced base class with utility integration
+
 export abstract class BaseProviderPlugin implements ProviderPlugin {
   abstract readonly id: string
   abstract readonly name: string
@@ -88,14 +168,14 @@ export abstract class BaseProviderPlugin implements ProviderPlugin {
   abstract getConnectionStatus(): Promise<ProviderStatus>
   abstract refreshConnectionInfo(): Promise<ProviderConnectionInfo | null>
   
-  // OAuth flow
+  // OAuth flow - now using shared utilities
   async initiateOAuth(): Promise<string> {
     if (!this.oauthConfig?.authUrl) {
       throw new Error(`OAuth not configured for ${this.displayName}`)
     }
     
-    // Generate state parameter for security
-    const state = this.generateState()
+    // Generate state parameter for security using shared utility
+    const state = ProviderUtils.generateOAuthState()
     
     const params = new URLSearchParams({
       response_type: 'code',
@@ -140,22 +220,9 @@ export abstract class BaseProviderPlugin implements ProviderPlugin {
     }
   }
   
-  // Helper methods
-  private generateState(): string {
-    return Math.random().toString(36).substring(2, 15) + 
-           Math.random().toString(36).substring(2, 15)
-  }
-  
+  // Helper methods - now using shared utilities
   protected formatLastUsed(dateString: string): string {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
-    
-    if (diffHours < 1) return 'Just now'
-    if (diffHours < 24) return `${diffHours}h ago`
-    const diffDays = Math.floor(diffHours / 24)
-    return `${diffDays}d ago`
+    return ProviderUtils.formatLastUsed(dateString)
   }
   
   // Cleanup

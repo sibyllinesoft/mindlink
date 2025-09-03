@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
-import { createPortal } from 'react-dom'
-import { X, Settings, RefreshCw } from 'lucide-react'
+import { Settings, RefreshCw } from 'lucide-react'
 import { OllamaPlugin } from '../plugins/providers/ollama'
-import './OllamaConfigModal.css'
+import { ModalWrapper, ModalHeader, ModalError, useModalState } from './shared/ModalUtils'
+import './shared/Modal.css'
 
 interface OllamaConfigModalProps {
   isOpen: boolean
@@ -29,9 +29,10 @@ const OllamaConfigModal: React.FC<OllamaConfigModalProps> = ({
     timeout: 5000
   })
   const [availableModels, setAvailableModels] = useState<string[]>([])
-  const [loading, setLoading] = useState(false)
+  const modalState = useModalState({ isOpen })
   const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  
+  const { loading, error, setLoading, setError } = modalState
 
   // Load current configuration when modal opens
   useEffect(() => {
@@ -121,27 +122,16 @@ const OllamaConfigModal: React.FC<OllamaConfigModalProps> = ({
     }
   }
 
-  if (!isOpen) return null
-
-  return createPortal(
-    <div className="modal-overlay">
-      <div className="modal-content ollama-config-modal">
-        <div className="modal-header">
-          <div className="modal-header-flex">
-            <Settings className="modal-icon" />
-            <h2 className="modal-title">Ollama Configuration</h2>
-          </div>
-          <button className="modal-close-btn" onClick={onClose} title="Close">
-            <X />
-          </button>
-        </div>
-        
-        <div className="modal-body">
-          {error && (
-            <div className="error-message">
-              <span>{error}</span>
-            </div>
-          )}
+  return (
+    <ModalWrapper isOpen={isOpen} onClose={onClose} size="md" className="ollama-config-modal">
+      <ModalHeader 
+        title="Ollama Configuration" 
+        onClose={onClose} 
+        icon={<Settings />} 
+      />
+      
+      <div className="modal__content">
+        <ModalError error={error} />
           
           <div className="config-section">
             <label className="config-label">
@@ -237,32 +227,32 @@ const OllamaConfigModal: React.FC<OllamaConfigModalProps> = ({
           </div>
         </div>
 
-        <div className="modal-footer">
-          <button
-            className="btn btn--ghost"
-            onClick={onClose}
-            disabled={saving}
-          >
-            Cancel
-          </button>
-          <button
-            className="btn btn--primary"
-            onClick={handleSave}
-            disabled={saving || loading || !config.selectedModel}
-          >
-            {saving ? (
-              <>
-                <RefreshCw className="spinner" />
-                Saving...
-              </>
-            ) : (
-              'Save Configuration'
-            )}
-          </button>
+        <div className="modal__footer">
+          <div className="modal__actions">
+            <button
+              className="btn btn--ghost"
+              onClick={onClose}
+              disabled={saving}
+            >
+              Cancel
+            </button>
+            <button
+              className="btn btn--primary"
+              onClick={handleSave}
+              disabled={saving || loading || !config.selectedModel}
+            >
+              {saving ? (
+                <>
+                  <RefreshCw className="spinner" />
+                  Saving...
+                </>
+              ) : (
+                'Save Configuration'
+              )}
+            </button>
+          </div>
         </div>
-      </div>
-    </div>,
-    document.body
+    </ModalWrapper>
   )
 }
 

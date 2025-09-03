@@ -1,4 +1,4 @@
-import { BaseProviderPlugin } from '../base-plugin'
+import { BaseProviderPlugin, ProviderUtils } from '../base-plugin'
 import { ProviderStatus, ProviderConnectionInfo, OAuthConfig } from '../types'
 import { invoke } from '@tauri-apps/api/core'
 
@@ -37,16 +37,9 @@ export class OpenAIPlugin extends BaseProviderPlugin {
   }
   
   override async getToken(): Promise<string | null> {
-    // First check the stored token
+    // Use shared utility for environment fallback
     const storedToken = await super.getToken()
-    if (storedToken) return storedToken
-    
-    // Check environment variable as fallback
-    if (typeof process !== 'undefined' && process.env?.['OPENAI_API_KEY']) {
-      return process.env['OPENAI_API_KEY']
-    }
-    
-    return null
+    return ProviderUtils.getTokenWithEnvironmentFallback(storedToken, 'OPENAI_API_KEY')
   }
   
   protected override async onTokenUpdated(token: string): Promise<void> {
@@ -151,17 +144,12 @@ export class OpenAIPlugin extends BaseProviderPlugin {
                            gptModels.find((id: string) => id.includes('gpt-3.5')) ||
                            gptModels[0] || 'gpt-3.5-turbo'
       
-      // For demonstration, we'll use mock usage data
-      // In a real implementation, you'd fetch this from OpenAI's usage API
-      const connectionInfo: ProviderConnectionInfo = {
-        email: 'user@example.com', // Would come from user info API
-        model: preferredModel,
-        lastUsed: new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000).toISOString(),
-        tokensUsed: Math.floor(Math.random() * 10000) + 1000,
-        requestsToday: Math.floor(Math.random() * 100) + 10
-      }
-      
-      return connectionInfo
+      // Use shared utility for mock connection info
+      return ProviderUtils.createMockConnectionInfo(
+        'openai',
+        preferredModel,
+        'ChatGPT Plus'
+      )
       
     } catch (error) {
       console.error('Failed to refresh OpenAI connection info:', error)
@@ -197,34 +185,17 @@ export class OpenAIPlugin extends BaseProviderPlugin {
   }
   
   protected override async exchangeCodeForToken(code: string): Promise<string> {
-    // In a real implementation, this would exchange the OAuth code for an API key
-    // For now, we'll simulate this
-    
+    // Use shared utility for standard OAuth token exchange
     try {
-      // This would be a call to OpenAI's token endpoint
-      const response = await fetch('https://platform.openai.com/oauth/token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          grant_type: 'authorization_code',
-          code,
-          client_id: this.oauthConfig.clientId,
-          redirect_uri: this.oauthConfig.redirectUri
-        })
-      })
-      
-      if (!response.ok) {
-        throw new Error(`OAuth token exchange failed: ${response.status}`)
-      }
-      
-      const data = await response.json()
-      const apiKey = data.access_token
+      const apiKey = await ProviderUtils.makeStandardOAuthTokenExchange(
+        'https://platform.openai.com/oauth/token',
+        code,
+        this.oauthConfig.clientId || '',
+        this.oauthConfig.redirectUri || ''
+      )
       
       // Store the token
       await this.setToken(apiKey)
-      
       return apiKey
       
     } catch (error) {

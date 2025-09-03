@@ -1,4 +1,4 @@
-import { BaseProviderPlugin } from '../base-plugin'
+import { BaseProviderPlugin, ProviderUtils } from '../base-plugin'
 import { ProviderStatus, ProviderConnectionInfo, OAuthConfig } from '../types'
 
 /**
@@ -36,16 +36,9 @@ export class AnthropicPlugin extends BaseProviderPlugin {
   }
   
   override async getToken(): Promise<string | null> {
-    // First check the stored token
+    // Use shared utility for environment fallback
     const storedToken = await super.getToken()
-    if (storedToken) return storedToken
-    
-    // Check environment variable as fallback
-    if (typeof process !== 'undefined' && process.env?.['ANTHROPIC_API_KEY']) {
-      return process.env['ANTHROPIC_API_KEY']
-    }
-    
-    return null
+    return ProviderUtils.getTokenWithEnvironmentFallback(storedToken, 'ANTHROPIC_API_KEY')
   }
   
   protected override async onTokenUpdated(token: string): Promise<void> {
@@ -104,36 +97,21 @@ export class AnthropicPlugin extends BaseProviderPlugin {
     
     try {
       // For Anthropic, we can test the connection by making a simple API call
-      // Since there's no models endpoint, we'll simulate a lightweight request
       const testResponse = await this.testApiConnection()
       
       if (!testResponse) {
         return null
       }
       
-      // Available Claude models (as of 2024) - removed since unused
-      // const supportedModels = [
-      //   'claude-3-5-sonnet-20241022',
-      //   'claude-3-opus-20240229',
-      //   'claude-3-sonnet-20240229',
-      //   'claude-3-haiku-20240307'
-      // ]
-      
       // Default to the most capable model
       const preferredModel = 'claude-3-5-sonnet-20241022'
       
-      // For demonstration, we'll use mock usage data
-      // In a real implementation, you'd fetch this from Anthropic's usage API
-      const connectionInfo: ProviderConnectionInfo = {
-        email: 'user@example.com', // Would come from user info API if available
-        model: preferredModel,
-        plan: 'Pro', // Would come from account info
-        lastUsed: new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000).toISOString(),
-        tokensUsed: Math.floor(Math.random() * 15000) + 2000,
-        requestsToday: Math.floor(Math.random() * 50) + 5
-      }
-      
-      return connectionInfo
+      // Use shared utility for mock connection info
+      return ProviderUtils.createMockConnectionInfo(
+        'anthropic',
+        preferredModel,
+        'Pro'
+      )
       
     } catch (error) {
       console.error('Failed to refresh Anthropic connection info:', error)
@@ -157,34 +135,17 @@ export class AnthropicPlugin extends BaseProviderPlugin {
   }
   
   protected override async exchangeCodeForToken(code: string): Promise<string> {
-    // In a real implementation, this would exchange the OAuth code for an API key
-    // For now, we'll simulate this
-    
+    // Use shared utility for standard OAuth token exchange
     try {
-      // This would be a call to Anthropic's token endpoint
-      const response = await fetch('https://console.anthropic.com/oauth/token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          grant_type: 'authorization_code',
-          code,
-          client_id: this.oauthConfig.clientId,
-          redirect_uri: this.oauthConfig.redirectUri
-        })
-      })
-      
-      if (!response.ok) {
-        throw new Error(`OAuth token exchange failed: ${response.status}`)
-      }
-      
-      const data = await response.json()
-      const apiKey = data.access_token
+      const apiKey = await ProviderUtils.makeStandardOAuthTokenExchange(
+        'https://console.anthropic.com/oauth/token',
+        code,
+        this.oauthConfig.clientId || '',
+        this.oauthConfig.redirectUri || ''
+      )
       
       // Store the token
       await this.setToken(apiKey)
-      
       return apiKey
       
     } catch (error) {
@@ -202,9 +163,6 @@ export class AnthropicPlugin extends BaseProviderPlugin {
       // Test with a minimal API call
       // Since Anthropic doesn't have a simple health check endpoint,
       // we'll simulate a connection test
-      
-      // In a real implementation, you might make a small completion request
-      // or check account info if such an endpoint exists
       
       const response = await fetch(`${this.baseUrl}/messages`, {
         method: 'POST',

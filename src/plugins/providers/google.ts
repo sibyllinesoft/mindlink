@@ -1,4 +1,4 @@
-import { BaseProviderPlugin } from '../base-plugin'
+import { BaseProviderPlugin, ProviderUtils } from '../base-plugin'
 import { ProviderStatus, ProviderConnectionInfo, OAuthConfig } from '../types'
 
 /**
@@ -36,16 +36,9 @@ export class GooglePlugin extends BaseProviderPlugin {
   }
   
   override async getToken(): Promise<string | null> {
-    // First check the stored token
+    // Use shared utility for environment fallback
     const storedToken = await super.getToken()
-    if (storedToken) return storedToken
-    
-    // Check environment variable as fallback
-    if (typeof process !== 'undefined' && process.env?.['GOOGLE_API_KEY']) {
-      return process.env['GOOGLE_API_KEY']
-    }
-    
-    return null
+    return ProviderUtils.getTokenWithEnvironmentFallback(storedToken, 'GOOGLE_API_KEY')
   }
   
   protected override async onTokenUpdated(token: string): Promise<void> {
@@ -125,18 +118,12 @@ export class GooglePlugin extends BaseProviderPlugin {
                            geminiModels.find((name: string) => name.includes('gemini')) ||
                            geminiModels[0] || 'gemini-pro'
       
-      // For demonstration, we'll use mock usage data
-      // In a real implementation, you'd fetch this from Google Cloud usage APIs
-      const connectionInfo: ProviderConnectionInfo = {
-        email: 'user@gmail.com', // Would come from OAuth user info
-        model: preferredModel,
-        plan: 'Free Tier', // Would come from billing API
-        lastUsed: new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000).toISOString(),
-        tokensUsed: Math.floor(Math.random() * 8000) + 500,
-        requestsToday: Math.floor(Math.random() * 30) + 3
-      }
-      
-      return connectionInfo
+      // Use shared utility for mock connection info
+      return ProviderUtils.createMockConnectionInfo(
+        'google',
+        preferredModel,
+        'Free Tier'
+      )
       
     } catch (error) {
       console.error('Failed to refresh Google connection info:', error)
@@ -179,38 +166,17 @@ export class GooglePlugin extends BaseProviderPlugin {
   }
   
   protected override async exchangeCodeForToken(code: string): Promise<string> {
-    // In a real implementation, this would exchange the OAuth code for an access token
-    // and then use that to get an API key or service account credentials
-    
+    // Use shared utility for standard OAuth token exchange
     try {
-      // This would be a call to Google's OAuth token endpoint
-      const response = await fetch('https://oauth2.googleapis.com/token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          grant_type: 'authorization_code',
-          code,
-          client_id: this.oauthConfig.clientId,
-          redirect_uri: this.oauthConfig.redirectUri,
-          client_secret: (typeof process !== 'undefined' && process.env?.['GOOGLE_CLIENT_SECRET']) || '' // Would need to be configured
-        })
-      })
+      const accessToken = await ProviderUtils.makeStandardOAuthTokenExchange(
+        'https://oauth2.googleapis.com/token',
+        code,
+        this.oauthConfig.clientId || '',
+        this.oauthConfig.redirectUri || ''
+      )
       
-      if (!response.ok) {
-        throw new Error(`OAuth token exchange failed: ${response.status}`)
-      }
-      
-      const data = await response.json()
-      const accessToken = data.access_token
-      
-      // In practice, you might need to use this access token to create or retrieve
-      // an API key for the Generative Language API
-      // For now, we'll store the access token as the API key
-      
+      // Store the token
       await this.setToken(accessToken)
-      
       return accessToken
       
     } catch (error) {
