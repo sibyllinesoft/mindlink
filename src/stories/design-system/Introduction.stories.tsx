@@ -77,7 +77,7 @@ export default meta;
 type Story = StoryObj;
 
 export const Introduction: Story = {
-  render: () => null,
+  render: () => <div></div>,
   parameters: {
     docs: {
       source: { code: null },

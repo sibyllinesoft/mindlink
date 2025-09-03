@@ -76,7 +76,7 @@ export abstract class BaseProviderPlugin implements ProviderPlugin {
     }
   }
   
-  protected async onTokenUpdated(token: string): Promise<void> {
+  protected async onTokenUpdated(_token: string): Promise<void> {
     // Override in subclasses to handle token updates
   }
   

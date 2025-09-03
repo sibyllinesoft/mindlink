@@ -6,19 +6,20 @@ import type { ProviderConnectionInfo, ProviderStatus } from '../types'
  * Detects and connects to local Ollama instances
  */
 export class OllamaPlugin extends BaseProviderPlugin {
-  id = 'ollama'
-  displayName = 'Ollama'
-  description = 'Connect to local Ollama models'
-  version = '1.0.0'
+  readonly id = 'ollama'
+  override readonly name = 'ollama'
+  readonly displayName = 'Ollama'
+  override readonly description = 'Connect to local Ollama models'
+  override readonly version = '1.0.0'
   
   // Ollama doesn't use OAuth - it's a local service
-  authCommand = 'detect'
-  oauthConfig = undefined
-  supportsConfiguration = true // Ollama supports model selection and endpoint configuration
+  override authCommand = 'detect'
+  // oauthConfig omitted - Ollama doesn't use OAuth
+  readonly supportsConfiguration = true // Ollama supports model selection and endpoint configuration
   
   private baseUrl = 'http://127.0.0.1:11434'
   private detectionTimeout = 5000 // 5 second timeout for detection
-  private selectedModel: string | null = null
+  // selectedModel removed as it's part of config
   
   // Configuration options
   private config = {
@@ -27,7 +28,7 @@ export class OllamaPlugin extends BaseProviderPlugin {
     timeout: 5000
   }
   
-  protected async onInitialize(): Promise<void> {
+  protected override async onInitialize(): Promise<void> {
     // Load saved configuration
     await this.loadConfig()
     console.log('🦙 Ollama plugin initialized with config:', this.config)
@@ -41,7 +42,6 @@ export class OllamaPlugin extends BaseProviderPlugin {
       if (savedConfig) {
         this.config = { ...this.config, ...JSON.parse(savedConfig) }
         this.baseUrl = this.config.baseUrl
-        this.selectedModel = this.config.selectedModel
         this.detectionTimeout = this.config.timeout
       }
     } catch (error) {
@@ -61,7 +61,6 @@ export class OllamaPlugin extends BaseProviderPlugin {
   async updateConfig(newConfig: Partial<typeof this.config>): Promise<void> {
     this.config = { ...this.config, ...newConfig }
     this.baseUrl = this.config.baseUrl
-    this.selectedModel = this.config.selectedModel
     this.detectionTimeout = this.config.timeout
     await this.saveConfig()
     console.log('🦙 Ollama config updated:', this.config)
@@ -72,7 +71,7 @@ export class OllamaPlugin extends BaseProviderPlugin {
     return { ...this.config }
   }
   
-  async getConnectionStatus(): Promise<ProviderStatus> {
+  override async getConnectionStatus(): Promise<ProviderStatus> {
     const lastChecked = new Date().toISOString()
     
     try {
@@ -116,7 +115,7 @@ export class OllamaPlugin extends BaseProviderPlugin {
     }
   }
   
-  async refreshConnectionInfo(): Promise<ProviderConnectionInfo | null> {
+  override async refreshConnectionInfo(): Promise<ProviderConnectionInfo | null> {
     try {
       // Test Ollama API with timeout
       const controller = new AbortController()
@@ -231,12 +230,12 @@ export class OllamaPlugin extends BaseProviderPlugin {
   }
   
   // Ollama doesn't use OAuth, so we'll implement a simple detection flow
-  async initiateOAuth(): Promise<string> {
+  override async initiateOAuth(): Promise<string> {
     // For Ollama, we just return a local detection URL
     return 'ollama://detect'
   }
   
-  protected async exchangeCodeForToken(code: string): Promise<string> {
+  protected override async exchangeCodeForToken(code: string): Promise<string> {
     // Ollama doesn't use tokens, but we'll return a dummy token to indicate detection
     if (code === 'detect') {
       const connectionInfo = await this.refreshConnectionInfo()
@@ -246,7 +245,7 @@ export class OllamaPlugin extends BaseProviderPlugin {
     throw new Error('Invalid detection code for Ollama')
   }
   
-  async testConnection(): Promise<boolean> {
+  override async testConnection(): Promise<boolean> {
     try {
       const status = await this.getConnectionStatus()
       return status.status === 'connected'
@@ -256,18 +255,18 @@ export class OllamaPlugin extends BaseProviderPlugin {
   }
   
   // Override the token methods since Ollama doesn't use authentication
-  async getToken(): Promise<string | null> {
+  override async getToken(): Promise<string | null> {
     // Check if Ollama is detected/running
     const isRunning = await this.testConnection()
     return isRunning ? 'ollama-running' : null
   }
   
-  async setToken(token: string): Promise<void> {
+  override async setToken(token: string): Promise<void> {
     // No-op for Ollama since it doesn't use tokens
     console.log('🦙 Ollama token set (no-op):', token)
   }
   
-  async clearToken(): Promise<void> {
+  override async clearToken(): Promise<void> {
     // No-op for Ollama
     console.log('🦙 Ollama token cleared (no-op)')
   }

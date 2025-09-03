@@ -28,13 +28,11 @@ type Story = StoryObj;
 const ColorSwatch = ({ 
   name, 
   value, 
-  description, 
-  textColor = '#ffffff' 
+  description 
 }: { 
   name: string; 
   value: string; 
   description?: string;
-  textColor?: string;
 }) => (
   <div style={{ 
     display: 'flex', 

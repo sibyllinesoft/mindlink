@@ -231,7 +231,7 @@ export const StateTransitions: Story = {
       },
     },
   },
-  play: async ({ canvasElement, args }) => {
+  play: async () => {
     const states: Array<{
       status: 'disconnected' | 'connecting' | 'connected' | 'error';
       url: string | null;
@@ -247,6 +247,7 @@ export const StateTransitions: Story = {
     
     const cycleStates = () => {
       const state = states[currentIndex];
+      if (!state) return;
       // Note: In a real implementation, you'd update the component props
       // This is just for demonstration purposes
       console.log(`Transitioning to: ${state.status}`, state.url);

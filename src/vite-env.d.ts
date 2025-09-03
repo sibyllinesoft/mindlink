@@ -10,3 +10,8 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv
 }
+
+// Storybook Tauri mocks
+interface Window {
+  __TAURI_INVOKE__?: (command: string, args?: any) => Promise<any>
+}

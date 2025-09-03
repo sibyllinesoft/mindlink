@@ -85,7 +85,7 @@ export const Loading: Story = {
     
     // Override the invoke mock to add delay
     const originalInvoke = window.__TAURI_INVOKE__;
-    window.__TAURI_INVOKE__ = (command: string) => {
+    window.__TAURI_INVOKE__ = (command: string): Promise<any> => {
       if (command === 'get_status') {
         return new Promise((resolve) => {
           setTimeout(() => {
@@ -98,7 +98,7 @@ export const Loading: Story = {
           }, 5000); // 5 second delay to show loading
         });
       }
-      return originalInvoke(command);
+      return originalInvoke?.(command) ?? Promise.resolve({});
     };
   },
 };
@@ -184,7 +184,7 @@ export const WithErrorMessage: Story = {
     // Simulate an error message after component loads
     setTimeout(() => {
       // Trigger an error by trying to open Bifrost config with a failure
-      window.__TAURI_INVOKE__ = (command: string) => {
+      window.__TAURI_INVOKE__ = (command: string): Promise<any> => {
         if (command === 'open_bifrost_config') {
           return Promise.reject(new Error('Failed to open Bifrost configuration: Service unavailable'));
         }

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react'
-import { X, Activity, Calendar, Key, BarChart3, Clock, Trash2, FileText, AlertCircle, RefreshCw } from 'lucide-react'
-import { bifrostService, AppUsageStats, BifrostLogEntry } from '../services/bifrostService'
+import React from 'react'
+import { X, Activity, Calendar, Key, BarChart3, Clock, Trash2, FileText } from 'lucide-react'
+// import type { AppUsageStats, BifrostLogEntry } from '../services/bifrostService' // Not currently used
 import './AppDetailsModal.css'
 
 interface App {

@@ -10,53 +10,53 @@ export class AnthropicPlugin extends BaseProviderPlugin {
   readonly name = 'anthropic'
   readonly displayName = 'Anthropic'
   readonly version = '1.0.0'
-  readonly description = 'Connect to Claude models via Anthropic API'
-  readonly homepage = 'https://www.anthropic.com'
+  override readonly description = 'Connect to Claude models via Anthropic API'
+  override readonly homepage = 'https://www.anthropic.com'
   readonly authCommand = 'claude-code auth login'
   
-  readonly oauthConfig: OAuthConfig = {
+  override readonly oauthConfig: OAuthConfig = {
     authUrl: 'https://console.anthropic.com/oauth/authorize',
     scope: ['api'],
-    clientId: (typeof process !== 'undefined' && process.env?.ANTHROPIC_CLIENT_ID) || 'your-client-id',
+    clientId: (typeof process !== 'undefined' && process.env?.['ANTHROPIC_CLIENT_ID']) || 'your-client-id',
     redirectUri: 'http://localhost:3000/auth/anthropic/callback'
   }
   
   private apiKey: string | null = null
   private baseUrl = 'https://api.anthropic.com/v1'
   
-  protected async onInitialize(): Promise<void> {
+  protected override async onInitialize(): Promise<void> {
     // Check for API key in environment variables or token storage
     this.apiKey = await this.getToken()
     
     // Also check for ANTHROPIC_API_KEY environment variable
-    if (!this.apiKey && typeof process !== 'undefined' && process.env?.ANTHROPIC_API_KEY) {
-      this.apiKey = process.env.ANTHROPIC_API_KEY
+    if (!this.apiKey && typeof process !== 'undefined' && process.env?.['ANTHROPIC_API_KEY']) {
+      this.apiKey = process.env['ANTHROPIC_API_KEY']
       await this.setToken(this.apiKey) // Store for future use
     }
   }
   
-  async getToken(): Promise<string | null> {
+  override async getToken(): Promise<string | null> {
     // First check the stored token
     const storedToken = await super.getToken()
     if (storedToken) return storedToken
     
     // Check environment variable as fallback
-    if (typeof process !== 'undefined' && process.env?.ANTHROPIC_API_KEY) {
-      return process.env.ANTHROPIC_API_KEY
+    if (typeof process !== 'undefined' && process.env?.['ANTHROPIC_API_KEY']) {
+      return process.env['ANTHROPIC_API_KEY']
     }
     
     return null
   }
   
-  protected async onTokenUpdated(token: string): Promise<void> {
+  protected override async onTokenUpdated(token: string): Promise<void> {
     this.apiKey = token
   }
   
-  protected async onTokenCleared(): Promise<void> {
+  protected override async onTokenCleared(): Promise<void> {
     this.apiKey = null
   }
   
-  async getConnectionStatus(): Promise<ProviderStatus> {
+  override async getConnectionStatus(): Promise<ProviderStatus> {
     const lastChecked = new Date().toISOString()
     
     try {
@@ -99,7 +99,7 @@ export class AnthropicPlugin extends BaseProviderPlugin {
     }
   }
   
-  async refreshConnectionInfo(): Promise<ProviderConnectionInfo | null> {
+  override async refreshConnectionInfo(): Promise<ProviderConnectionInfo | null> {
     if (!this.apiKey) return null
     
     try {
@@ -111,13 +111,13 @@ export class AnthropicPlugin extends BaseProviderPlugin {
         return null
       }
       
-      // Available Claude models (as of 2024)
-      const supportedModels = [
-        'claude-3-5-sonnet-20241022',
-        'claude-3-opus-20240229',
-        'claude-3-sonnet-20240229',
-        'claude-3-haiku-20240307'
-      ]
+      // Available Claude models (as of 2024) - removed since unused
+      // const supportedModels = [
+      //   'claude-3-5-sonnet-20241022',
+      //   'claude-3-opus-20240229',
+      //   'claude-3-sonnet-20240229',
+      //   'claude-3-haiku-20240307'
+      // ]
       
       // Default to the most capable model
       const preferredModel = 'claude-3-5-sonnet-20241022'
@@ -156,7 +156,7 @@ export class AnthropicPlugin extends BaseProviderPlugin {
     return connectionInfo?.model || null
   }
   
-  protected async exchangeCodeForToken(code: string): Promise<string> {
+  protected override async exchangeCodeForToken(code: string): Promise<string> {
     // In a real implementation, this would exchange the OAuth code for an API key
     // For now, we'll simulate this
     
@@ -235,7 +235,7 @@ export class AnthropicPlugin extends BaseProviderPlugin {
     }
   }
   
-  async testConnection(): Promise<boolean> {
+  override async testConnection(): Promise<boolean> {
     try {
       const status = await this.getConnectionStatus()
       return status.status === 'connected'

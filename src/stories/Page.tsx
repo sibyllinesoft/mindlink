@@ -13,7 +13,7 @@ export const Page: React.FC = () => {
   return (
     <article>
       <Header
-        user={user}
+        {...(user && { user })}
         onLogin={() => setUser({ name: 'Jane Doe' })}
         onLogout={() => setUser(undefined)}
         onCreateAccount={() => setUser({ name: 'Jane Doe' })}

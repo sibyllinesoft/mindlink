@@ -3,7 +3,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import Dashboard from './components/Dashboard'
 import UnifiedNavigation from './components/UnifiedNavigation'
-import type { StatusResponse, ServiceResponse } from './types/api'
+import type { ServiceResponse } from './types/api'
 import './design-system/index.css'
 import './App.css'
 

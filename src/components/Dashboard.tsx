@@ -24,11 +24,8 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({
-  serverStatus,
   tunnelStatus,
   publicUrl,
-  isAuthenticated,
-  onToggleTunnel,
 }) => {
   const [selectedApp, setSelectedApp] = useState<App | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)

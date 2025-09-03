@@ -47,12 +47,14 @@ const ProvidersCard: React.FC<ProvidersCardProps> = () => {
       
     } catch (error) {
       console.error('❌ Failed to initialize plugins:', error)
-      console.error('❌ Error stack:', error.stack)
-      console.error('❌ Error details:', {
-        name: error.name,
-        message: error.message,
-        cause: error.cause
-      })
+      if (error instanceof Error) {
+        console.error('❌ Error stack:', error.stack)
+        console.error('❌ Error details:', {
+          name: error.name,
+          message: error.message,
+          cause: error.cause
+        })
+      }
     }
   }
   
@@ -326,14 +328,17 @@ const ProvidersCard: React.FC<ProvidersCardProps> = () => {
       </div>
 
       {/* Configuration Modals */}
-      {configModalOpen === 'ollama' && (
-        <OllamaConfigModal
-          isOpen={true}
-          onClose={() => setConfigModalOpen(null)}
-          plugin={providers.find(p => p.plugin.id === 'ollama')?.plugin as OllamaPlugin}
-          onConfigSaved={refreshProviderStatuses}
-        />
-      )}
+      {configModalOpen === 'ollama' && (() => {
+        const ollamaProvider = providers.find(p => p.plugin.id === 'ollama');
+        return ollamaProvider ? (
+          <OllamaConfigModal
+            isOpen={true}
+            onClose={() => setConfigModalOpen(null)}
+            plugin={ollamaProvider.plugin as OllamaPlugin}
+            onConfigSaved={refreshProviderStatuses}
+          />
+        ) : null;
+      })()}
     </div>
   )
 }

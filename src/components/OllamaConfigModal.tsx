@@ -55,7 +55,7 @@ const OllamaConfigModal: React.FC<OllamaConfigModalProps> = ({
       
       // If no model is selected and models are available, select the first one
       if (!config.selectedModel && models.length > 0) {
-        setConfig(prev => ({ ...prev, selectedModel: models[0] }))
+        setConfig(prev => ({ ...prev, selectedModel: models[0] || null }))
       }
     } catch (err) {
       console.error('🦙 Failed to load models:', err)

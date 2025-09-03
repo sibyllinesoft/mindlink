@@ -178,7 +178,7 @@ export const TabletView: Story = {
 export const NoCancelOption: Story = {
   args: {
     isOpen: true,
-    onCancel: undefined,
+    // onCancel omitted to test optional behavior
   },
   parameters: {
     docs: {
@@ -267,7 +267,7 @@ export const SuccessFlow: Story = {
       },
     },
   },
-  play: async ({ canvasElement, args }) => {
+  play: async ({ args }) => {
     // Simulate successful authentication after delay
     setTimeout(() => {
       console.log('Simulating auth success...');

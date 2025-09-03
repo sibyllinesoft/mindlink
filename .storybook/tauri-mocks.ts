@@ -25,7 +25,7 @@ export const mockState = {
   isAuthenticated: true,
   tunnelStatus: 'connected' as 'disconnected' | 'connecting' | 'connected' | 'error',
   serverRunning: true,
-  tunnelUrl: 'https://example-tunnel.trycloudflare.com',
+  tunnelUrl: 'https://example-tunnel.trycloudflare.com' as string | null,
   authUrl: 'https://example-auth.cloudflareaccess.com',
 };
 
@@ -172,7 +172,7 @@ export const mockScenarios = {
     updateMockState({
       isAuthenticated: false,
       tunnelStatus: 'disconnected',
-      tunnelUrl: null,
+      tunnelUrl: null as string | null,
     });
   },
   
@@ -181,7 +181,7 @@ export const mockScenarios = {
     updateMockState({
       isAuthenticated: true,
       tunnelStatus: 'connecting',
-      tunnelUrl: null,
+      tunnelUrl: null as string | null,
     });
   },
   
@@ -190,7 +190,7 @@ export const mockScenarios = {
     updateMockState({
       isAuthenticated: true,
       tunnelStatus: 'error',
-      tunnelUrl: null,
+      tunnelUrl: null as string | null,
     });
   },
   

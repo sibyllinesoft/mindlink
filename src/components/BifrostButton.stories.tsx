@@ -115,14 +115,14 @@ export const ErrorHandling: Story = {
       },
     },
   },
-  play: async ({ canvasElement, args }) => {
+  play: async ({ canvasElement }) => {
     // Override the Tauri invoke to simulate an error
     const originalInvoke = window.__TAURI_INVOKE__;
-    window.__TAURI_INVOKE__ = (command: string) => {
+    window.__TAURI_INVOKE__ = (command: string): Promise<any> => {
       if (command === 'open_bifrost_config') {
         return Promise.reject(new Error('Failed to open Bifrost configuration: Service unavailable'));
       }
-      return originalInvoke(command);
+      return originalInvoke?.(command) ?? Promise.resolve({});
     };
 
     // Click the button to trigger the error
@@ -133,7 +133,9 @@ export const ErrorHandling: Story = {
 
     // Restore original invoke after test
     setTimeout(() => {
-      window.__TAURI_INVOKE__ = originalInvoke;
+      if (originalInvoke) {
+        window.__TAURI_INVOKE__ = originalInvoke;
+      }
     }, 1000);
   },
 };

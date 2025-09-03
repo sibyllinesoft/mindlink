@@ -10,53 +10,53 @@ export class GooglePlugin extends BaseProviderPlugin {
   readonly name = 'google'
   readonly displayName = 'Google'
   readonly version = '1.0.0'
-  readonly description = 'Connect to Gemini models via Google AI Studio API'
-  readonly homepage = 'https://ai.google.dev'
+  override readonly description = 'Connect to Gemini models via Google AI Studio API'
+  override readonly homepage = 'https://ai.google.dev'
   readonly authCommand = 'gemini-cli auth login'
   
-  readonly oauthConfig: OAuthConfig = {
+  override readonly oauthConfig: OAuthConfig = {
     authUrl: 'https://accounts.google.com/oauth2/auth',
     scope: ['https://www.googleapis.com/auth/generative-language'],
-    clientId: (typeof process !== 'undefined' && process.env?.GOOGLE_CLIENT_ID) || 'your-client-id',
+    clientId: (typeof process !== 'undefined' && process.env?.['GOOGLE_CLIENT_ID']) || 'your-client-id',
     redirectUri: 'http://localhost:3000/auth/google/callback'
   }
   
   private apiKey: string | null = null
   private baseUrl = 'https://generativelanguage.googleapis.com/v1beta'
   
-  protected async onInitialize(): Promise<void> {
+  protected override async onInitialize(): Promise<void> {
     // Check for API key in environment variables or token storage
     this.apiKey = await this.getToken()
     
     // Also check for GOOGLE_API_KEY environment variable
-    if (!this.apiKey && typeof process !== 'undefined' && process.env?.GOOGLE_API_KEY) {
-      this.apiKey = process.env.GOOGLE_API_KEY
+    if (!this.apiKey && typeof process !== 'undefined' && process.env?.['GOOGLE_API_KEY']) {
+      this.apiKey = process.env['GOOGLE_API_KEY']
       await this.setToken(this.apiKey) // Store for future use
     }
   }
   
-  async getToken(): Promise<string | null> {
+  override async getToken(): Promise<string | null> {
     // First check the stored token
     const storedToken = await super.getToken()
     if (storedToken) return storedToken
     
     // Check environment variable as fallback
-    if (typeof process !== 'undefined' && process.env?.GOOGLE_API_KEY) {
-      return process.env.GOOGLE_API_KEY
+    if (typeof process !== 'undefined' && process.env?.['GOOGLE_API_KEY']) {
+      return process.env['GOOGLE_API_KEY']
     }
     
     return null
   }
   
-  protected async onTokenUpdated(token: string): Promise<void> {
+  protected override async onTokenUpdated(token: string): Promise<void> {
     this.apiKey = token
   }
   
-  protected async onTokenCleared(): Promise<void> {
+  protected override async onTokenCleared(): Promise<void> {
     this.apiKey = null
   }
   
-  async getConnectionStatus(): Promise<ProviderStatus> {
+  override async getConnectionStatus(): Promise<ProviderStatus> {
     const lastChecked = new Date().toISOString()
     
     try {
@@ -102,7 +102,7 @@ export class GooglePlugin extends BaseProviderPlugin {
     }
   }
   
-  async refreshConnectionInfo(): Promise<ProviderConnectionInfo | null> {
+  override async refreshConnectionInfo(): Promise<ProviderConnectionInfo | null> {
     if (!this.apiKey) return null
     
     try {
@@ -117,12 +117,12 @@ export class GooglePlugin extends BaseProviderPlugin {
       const models = modelsResponse.models
       const geminiModels = models
         .filter((model: any) => model.name.includes('gemini'))
-        .map((model: any) => model.name.split('/').pop()) // Extract model name from full path
+        .map((model: any) => (model.name as string).split('/').pop() as string) // Extract model name from full path
         .sort()
       
       // Get the most capable model as default
-      const preferredModel = geminiModels.find(name => name.includes('pro')) ||
-                           geminiModels.find(name => name.includes('gemini')) ||
+      const preferredModel = geminiModels.find((name: string) => name.includes('pro')) ||
+                           geminiModels.find((name: string) => name.includes('gemini')) ||
                            geminiModels[0] || 'gemini-pro'
       
       // For demonstration, we'll use mock usage data
@@ -157,7 +157,7 @@ export class GooglePlugin extends BaseProviderPlugin {
       const models = response.models
       return models
         .filter((model: any) => model.name.includes('gemini'))
-        .map((model: any) => model.name.split('/').pop()) // Extract model name
+        .map((model: any) => (model.name as string).split('/').pop() as string) // Extract model name
         .sort()
         
     } catch (error) {
@@ -178,7 +178,7 @@ export class GooglePlugin extends BaseProviderPlugin {
     return connectionInfo?.model || null
   }
   
-  protected async exchangeCodeForToken(code: string): Promise<string> {
+  protected override async exchangeCodeForToken(code: string): Promise<string> {
     // In a real implementation, this would exchange the OAuth code for an access token
     // and then use that to get an API key or service account credentials
     
@@ -194,7 +194,7 @@ export class GooglePlugin extends BaseProviderPlugin {
           code,
           client_id: this.oauthConfig.clientId,
           redirect_uri: this.oauthConfig.redirectUri,
-          client_secret: (typeof process !== 'undefined' && process.env?.GOOGLE_CLIENT_SECRET) || '' // Would need to be configured
+          client_secret: (typeof process !== 'undefined' && process.env?.['GOOGLE_CLIENT_SECRET']) || '' // Would need to be configured
         })
       })
       
@@ -239,7 +239,7 @@ export class GooglePlugin extends BaseProviderPlugin {
     return response.json()
   }
   
-  async testConnection(): Promise<boolean> {
+  override async testConnection(): Promise<boolean> {
     try {
       const status = await this.getConnectionStatus()
       return status.status === 'connected'

@@ -85,7 +85,7 @@ export class DynamicPluginLoader {
         { id: ollamaPlugin.id, name: ollamaPlugin.displayName }
       ])
       
-      plugins.push(openaiPlugin, anthropicPlugin, googlePlugin, ollamaPlugin)
+      plugins.push(openaiPlugin, anthropicPlugin, googlePlugin, ollamaPlugin as ProviderPlugin)
       
       console.log('🔌 Bundled plugins loaded successfully:', plugins.length)
       return plugins
@@ -188,7 +188,7 @@ export class DynamicPluginLoader {
         case 'google':
           return new GooglePlugin()
         case 'ollama':
-          return new OllamaPlugin()
+          return new OllamaPlugin() as ProviderPlugin
         default:
           console.warn(`Unknown plugin ID: ${manifest.id}`)
           return null

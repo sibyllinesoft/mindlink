@@ -11,53 +11,53 @@ export class OpenAIPlugin extends BaseProviderPlugin {
   readonly name = 'openai'
   readonly displayName = 'ChatGPT'
   readonly version = '1.0.0'
-  readonly description = 'Connect to ChatGPT Plus/Pro via OAuth'
-  readonly homepage = 'https://chatgpt.com'
+  override readonly description = 'Connect to ChatGPT Plus/Pro via OAuth'
+  override readonly homepage = 'https://chatgpt.com'
   readonly authCommand = 'openai-codex auth login'
   
-  readonly oauthConfig: OAuthConfig = {
+  override readonly oauthConfig: OAuthConfig = {
     authUrl: 'https://platform.openai.com/oauth/authorize',
     scope: ['api'],
-    clientId: (typeof process !== 'undefined' && process.env?.OPENAI_CLIENT_ID) || 'your-client-id',
+    clientId: (typeof process !== 'undefined' && process.env?.['OPENAI_CLIENT_ID']) || 'your-client-id',
     redirectUri: 'http://localhost:3000/auth/openai/callback'
   }
   
   private apiKey: string | null = null
   private baseUrl = 'https://api.openai.com/v1'
   
-  protected async onInitialize(): Promise<void> {
+  protected override async onInitialize(): Promise<void> {
     // Check for API key in environment variables or token storage
     this.apiKey = await this.getToken()
     
     // Also check for OPENAI_API_KEY environment variable
-    if (!this.apiKey && typeof process !== 'undefined' && process.env?.OPENAI_API_KEY) {
-      this.apiKey = process.env.OPENAI_API_KEY
+    if (!this.apiKey && typeof process !== 'undefined' && process.env?.['OPENAI_API_KEY']) {
+      this.apiKey = process.env['OPENAI_API_KEY']
       await this.setToken(this.apiKey) // Store for future use
     }
   }
   
-  async getToken(): Promise<string | null> {
+  override async getToken(): Promise<string | null> {
     // First check the stored token
     const storedToken = await super.getToken()
     if (storedToken) return storedToken
     
     // Check environment variable as fallback
-    if (typeof process !== 'undefined' && process.env?.OPENAI_API_KEY) {
-      return process.env.OPENAI_API_KEY
+    if (typeof process !== 'undefined' && process.env?.['OPENAI_API_KEY']) {
+      return process.env['OPENAI_API_KEY']
     }
     
     return null
   }
   
-  protected async onTokenUpdated(token: string): Promise<void> {
+  protected override async onTokenUpdated(token: string): Promise<void> {
     this.apiKey = token
   }
   
-  protected async onTokenCleared(): Promise<void> {
+  protected override async onTokenCleared(): Promise<void> {
     this.apiKey = null
   }
   
-  async getConnectionStatus(): Promise<ProviderStatus> {
+  override async getConnectionStatus(): Promise<ProviderStatus> {
     const lastChecked = new Date().toISOString()
     
     try {
@@ -128,7 +128,7 @@ export class OpenAIPlugin extends BaseProviderPlugin {
     }
   }
   
-  async refreshConnectionInfo(): Promise<ProviderConnectionInfo | null> {
+  override async refreshConnectionInfo(): Promise<ProviderConnectionInfo | null> {
     if (!this.apiKey) return null
     
     try {
@@ -147,8 +147,8 @@ export class OpenAIPlugin extends BaseProviderPlugin {
         .sort()
       
       // Get the most capable model as default
-      const preferredModel = gptModels.find(id => id.includes('gpt-4')) || 
-                           gptModels.find(id => id.includes('gpt-3.5')) ||
+      const preferredModel = gptModels.find((id: string) => id.includes('gpt-4')) || 
+                           gptModels.find((id: string) => id.includes('gpt-3.5')) ||
                            gptModels[0] || 'gpt-3.5-turbo'
       
       // For demonstration, we'll use mock usage data
@@ -196,7 +196,7 @@ export class OpenAIPlugin extends BaseProviderPlugin {
     return connectionInfo?.model || null
   }
   
-  protected async exchangeCodeForToken(code: string): Promise<string> {
+  protected override async exchangeCodeForToken(code: string): Promise<string> {
     // In a real implementation, this would exchange the OAuth code for an API key
     // For now, we'll simulate this
     
@@ -252,7 +252,7 @@ export class OpenAIPlugin extends BaseProviderPlugin {
     return response.json()
   }
   
-  async testConnection(): Promise<boolean> {
+  override async testConnection(): Promise<boolean> {
     try {
       const status = await this.getConnectionStatus()
       return status.status === 'connected'

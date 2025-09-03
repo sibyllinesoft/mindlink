@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { Settings, Trash2, Activity, Calendar, Key } from 'lucide-react'
-import { bifrostService, AppUsageStats } from '../services/bifrostService'
+import { Settings, Trash2, Key } from 'lucide-react'
+// import { bifrostService } from '../services/bifrostService' // Not currently used
 import './AppsCard.css'
 
 interface App {
@@ -94,14 +94,6 @@ const AppsCard: React.FC<AppsCardProps> = ({ tunnelStatus, onAppClick }) => {
     }
   }, [tunnelStatus])
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
 
   const handleRevokeApp = (e: React.MouseEvent, appId: string) => {
     e.stopPropagation()

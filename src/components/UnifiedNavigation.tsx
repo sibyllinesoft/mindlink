@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Settings } from 'lucide-react'
+// import { Settings } from 'lucide-react' // Not currently used
 import { invoke } from '@tauri-apps/api/core'
 import BifrostButton from './BifrostButton'
 import './UnifiedNavigation.css'
