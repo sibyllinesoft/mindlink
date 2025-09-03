@@ -344,3 +344,73 @@
     border-top: 3px solid var(--color-accent-primary);
   }
 }
+
+/* Auth Welcome Screen */
+.auth-welcome {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  padding: var(--space-8);
+}
+
+.auth-welcome__content {
+  text-align: center;
+  max-width: 500px;
+}
+
+.auth-welcome__icon {
+  margin-bottom: var(--space-6);
+}
+
+.auth-welcome__chatgpt-logo {
+  width: 64px;
+  height: 64px;
+}
+
+.auth-welcome__title {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-4);
+}
+
+.auth-welcome__description {
+  font-size: var(--font-size-lg);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-8);
+  line-height: 1.6;
+}
+
+.auth-welcome__features {
+  display: grid;
+  gap: var(--space-4);
+  margin-bottom: var(--space-8);
+}
+
+.auth-welcome__feature {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--color-surface-secondary);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-primary);
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+}
+
+.auth-welcome__feature-icon {
+  font-size: var(--font-size-xl);
+  flex-shrink: 0;
+}
+
+.auth-welcome__cta {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.auth-welcome__cta strong {
+  color: var(--color-text-primary);
+}

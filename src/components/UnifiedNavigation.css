@@ -62,22 +62,58 @@
   gap: var(--space-3);
 }
 
-/* Auth Notice for Unauthenticated State */
-.unified-nav__auth-notice {
-  padding: var(--space-2) var(--space-3);
-  background: var(--color-surface-card);
-  border: 1px solid var(--color-border-primary);
-  border-radius: var(--radius-md);
-  height: 2.5rem; /* Match toggle height */
+/* Auth Section for Login Button */
+.unified-nav__auth-section {
   display: flex;
   align-items: center;
+  gap: var(--space-3);
 }
 
-.unified-nav__auth-text {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-tertiary);
+.unified-nav__login-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: #10a37f; /* ChatGPT green */
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  height: 2.5rem; /* Match other controls */
   white-space: nowrap;
+}
+
+.unified-nav__login-btn:hover:not(:disabled) {
+  background: #0d9488;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.unified-nav__login-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.unified-nav__chatgpt-icon {
+  flex-shrink: 0;
+}
+
+.unified-nav__spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: unified-nav-spin 1s linear infinite;
+}
+
+@keyframes unified-nav-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 /* Tunnel Control */

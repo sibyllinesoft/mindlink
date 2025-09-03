@@ -134,14 +134,58 @@
   pointer-events: none;
 }
 
-/* Responsive design */
+/* Button content layout */
+.bifrost-button__content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  position: relative;
+}
+
+/* Status indicator */
+.bifrost-status-indicator {
+  position: relative;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+  margin-right: var(--space-2);
+}
+
+.bifrost-status-indicator--running {
+  background: var(--color-status-connected);
+  box-shadow: 0 0 4px rgba(34, 197, 94, 0.4);
+}
+
+.bifrost-status-indicator--stopped {
+  background: var(--color-text-muted);
+}
+
+.bifrost-status-indicator--unknown {
+  background: var(--color-status-warning);
+}
+
+/* Model count badge */
+.bifrost-model-count {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: var(--color-accent-primary);
+  color: white;
+  font-size: 10px;
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+  padding: 1px 4px;
+  border-radius: var(--radius-full);
+  min-width: 14px;
+  text-align: center;
+  box-shadow: 0 0 0 1px var(--color-surface-card);
+}
+
+/* Responsive design - Keep label visible as there's plenty of room */
 @media (max-width: 768px) {
-  .bifrost-button__label {
-    display: none; /* Hide label on small screens, show only icon */
-  }
-  
   .bifrost-button {
-    min-width: 2.25rem;
-    padding: var(--space-2);
+    /* Maintain normal button styling on mobile */
+    padding: var(--space-2) var(--space-4);
   }
 }

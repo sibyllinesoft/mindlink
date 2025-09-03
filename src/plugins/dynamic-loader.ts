@@ -69,21 +69,23 @@ export class DynamicPluginLoader {
     try {
       console.log('🔌 Loading bundled plugins from ./providers')
       // Import bundled plugins dynamically
-      const { OpenAIPlugin, AnthropicPlugin, GooglePlugin } = await import('./providers')
+      const { OpenAIPlugin, AnthropicPlugin, GooglePlugin, OllamaPlugin } = await import('./providers')
       
-      console.log('🔌 Plugin classes imported:', { OpenAIPlugin, AnthropicPlugin, GooglePlugin })
+      console.log('🔌 Plugin classes imported:', { OpenAIPlugin, AnthropicPlugin, GooglePlugin, OllamaPlugin })
       
       const openaiPlugin = new OpenAIPlugin()
       const anthropicPlugin = new AnthropicPlugin()
       const googlePlugin = new GooglePlugin()
+      const ollamaPlugin = new OllamaPlugin()
       
       console.log('🔌 Plugin instances created:', [
         { id: openaiPlugin.id, name: openaiPlugin.displayName },
         { id: anthropicPlugin.id, name: anthropicPlugin.displayName },
-        { id: googlePlugin.id, name: googlePlugin.displayName }
+        { id: googlePlugin.id, name: googlePlugin.displayName },
+        { id: ollamaPlugin.id, name: ollamaPlugin.displayName }
       ])
       
-      plugins.push(openaiPlugin, anthropicPlugin, googlePlugin)
+      plugins.push(openaiPlugin, anthropicPlugin, googlePlugin, ollamaPlugin)
       
       console.log('🔌 Bundled plugins loaded successfully:', plugins.length)
       return plugins
@@ -176,7 +178,7 @@ export class DynamicPluginLoader {
    */
   private async createPluginFromManifest(manifest: PluginManifest): Promise<ProviderPlugin | null> {
     try {
-      const { OpenAIPlugin, AnthropicPlugin, GooglePlugin } = await import('./providers')
+      const { OpenAIPlugin, AnthropicPlugin, GooglePlugin, OllamaPlugin } = await import('./providers')
       
       switch (manifest.id) {
         case 'openai':
@@ -185,6 +187,8 @@ export class DynamicPluginLoader {
           return new AnthropicPlugin()
         case 'google':
           return new GooglePlugin()
+        case 'ollama':
+          return new OllamaPlugin()
         default:
           console.warn(`Unknown plugin ID: ${manifest.id}`)
           return null
@@ -225,6 +229,15 @@ export class DynamicPluginLoader {
         description: 'Connect to Gemini models',
         author: 'MindLink Team',
         main: 'google.js',
+        mindlinkVersion: '1.0.0'
+      },
+      {
+        id: 'ollama',
+        name: 'Ollama',
+        version: '1.0.0',
+        description: 'Connect to local Ollama models',
+        author: 'MindLink Team',
+        main: 'ollama.js',
         mindlinkVersion: '1.0.0'
       }
     ]

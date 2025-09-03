@@ -1,5 +1,6 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Settings } from 'lucide-react'
+import { invoke } from '@tauri-apps/api/core'
 import BifrostButton from './BifrostButton'
 import './UnifiedNavigation.css'
 
@@ -8,6 +9,7 @@ interface UnifiedNavigationProps {
   isAuthenticated: boolean
   onToggleTunnel: () => void
   onBifrostError: (message: string) => void
+  onAuthSuccess?: () => void
 }
 
 const UnifiedNavigation: React.FC<UnifiedNavigationProps> = ({
@@ -15,8 +17,27 @@ const UnifiedNavigation: React.FC<UnifiedNavigationProps> = ({
   isAuthenticated,
   onToggleTunnel,
   onBifrostError,
+  onAuthSuccess,
 }) => {
+  const [isAuthenticating, setIsAuthenticating] = useState(false)
   const canToggle = isAuthenticated && tunnelStatus !== 'connecting'
+
+  const handleChatGPTLogin = async () => {
+    if (isAuthenticating) return
+    
+    setIsAuthenticating(true)
+    try {
+      console.log('Starting ChatGPT OAuth flow...')
+      await invoke('authenticate_chatgpt')
+      console.log('ChatGPT authentication successful!')
+      onAuthSuccess?.()
+    } catch (error) {
+      console.error('ChatGPT authentication failed:', error)
+      onBifrostError(`Authentication failed: ${error}`)
+    } finally {
+      setIsAuthenticating(false)
+    }
+  }
 
   return (
     <nav className="unified-nav">
@@ -52,8 +73,27 @@ const UnifiedNavigation: React.FC<UnifiedNavigationProps> = ({
               </label>
             </div>
           ) : (
-            <div className="unified-nav__auth-notice">
-              <span className="unified-nav__auth-text">Authentication required</span>
+            <div className="unified-nav__auth-section">
+              <button
+                className="btn btn--primary unified-nav__login-btn"
+                onClick={handleChatGPTLogin}
+                disabled={isAuthenticating}
+              >
+                {isAuthenticating ? (
+                  <>
+                    <div className="unified-nav__spinner"></div>
+                    Authenticating...
+                  </>
+                ) : (
+                  <>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="unified-nav__chatgpt-icon">
+                      <circle cx="8" cy="8" r="7" fill="#10a37f"/>
+                      <path d="M5 6h6c.55 0 1 .45 1 1v2c0 .55-.45 1-1 1H5c-.55 0-1-.45-1-1V7c0-.55.45-1 1-1z" fill="white"/>
+                    </svg>
+                    Login with ChatGPT
+                  </>
+                )}
+              </button>
             </div>
           )}
         </div>

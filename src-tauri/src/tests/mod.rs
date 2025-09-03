@@ -78,5 +78,11 @@ pub mod e2e_api_tests;
 pub mod e2e_component_tests;
 pub mod e2e_simple_tests;
 
+// Command-specific test modules
+pub mod local_llm_commands_tests;
+
 // Performance and stress test modules
 pub mod performance_stress_tests;
+
+// Live E2E test modules - Real service integration
+pub mod live_e2e_integration_tests;

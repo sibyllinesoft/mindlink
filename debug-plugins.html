@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug MindLink Plugins</title>
+</head>
+<body>
+    <h1>MindLink Plugin Debug</h1>
+    <div id="debug-output"></div>
+    
+    <script type="module">
+        // Import the plugin system directly
+        const debugOutput = document.getElementById('debug-output');
+        
+        function log(message) {
+            console.log(message);
+            debugOutput.innerHTML += `<p>${message}</p>`;
+        }
+        
+        async function debugPlugins() {
+            log('🔌 Starting plugin debug...');
+            
+            try {
+                // Clear any cached plugin data
+                log('🧹 Clearing plugin cache...');
+                localStorage.removeItem('mindlink_plugin_configs');
+                
+                // Import and test the plugin loader
+                log('📦 Importing plugin loader...');
+                const { pluginLoader } = await import('/src/plugins/dynamic-loader.ts');
+                const { pluginRegistry } = await import('/src/plugins/registry.ts');
+                
+                log('✅ Plugin modules imported successfully');
+                
+                // Load all plugins
+                log('🔄 Loading plugins...');
+                const plugins = await pluginLoader.loadAllPlugins();
+                
+                log(`📋 Loaded ${plugins.length} plugins:`);
+                plugins.forEach(plugin => {
+                    log(`  - ${plugin.displayName} (${plugin.id})`);
+                });
+                
+                // Test Ollama plugin specifically
+                const ollamaPlugin = plugins.find(p => p.id === 'ollama');
+                if (ollamaPlugin) {
+                    log('🦙 Found Ollama plugin! Testing connection...');
+                    
+                    const status = await ollamaPlugin.getConnectionStatus();
+                    log(`🦙 Ollama status: ${JSON.stringify(status, null, 2)}`);
+                    
+                    if (status.status === 'connected') {
+                        log('✅ Ollama is connected!');
+                        if (status.connectionInfo) {
+                            log(`📊 Model: ${status.connectionInfo.model}`);
+                            log(`📊 Size: ${status.connectionInfo.modelSize}`);
+                            log(`📊 Params: ${status.connectionInfo.modelParams}`);
+                        }
+                    } else {
+                        log(`❌ Ollama connection failed: ${status.error}`);
+                    }
+                } else {
+                    log('❌ Ollama plugin not found in loaded plugins!');
+                }
+                
+                // Test plugin registry
+                log('🏪 Getting connection statuses from registry...');
+                const statuses = await pluginRegistry.getConnectionStatuses();
+                log(`📊 Registry returned ${statuses.length} provider statuses:`);
+                statuses.forEach(({plugin, status}) => {
+                    log(`  - ${plugin.displayName}: ${status.status}`);
+                });
+                
+            } catch (error) {
+                log(`❌ Debug failed: ${error.message}`);
+                console.error(error);
+            }
+        }
+        
+        // Run debug
+        debugPlugins();
+    </script>
+</body>
+</html>

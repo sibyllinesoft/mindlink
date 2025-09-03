@@ -534,6 +534,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             commands::get_plugin_manifests,
             commands::get_plugins_directory,
             commands::ensure_plugins_directory,
+            // Local LLM Management Commands
+            commands::check_ollama_status,
+            commands::check_llamacpp_status,
+            commands::start_ollama_service,
+            commands::stop_ollama_service,
+            commands::start_llamacpp_service,
+            commands::stop_llamacpp_service,
+            commands::get_ollama_models,
+            commands::download_ollama_model,
+            commands::delete_ollama_model,
+            commands::check_bifrost_llm_provider,
+            commands::configure_bifrost_llm_provider,
+            commands::get_bifrost_models,
+            // ChatGPT Authentication Commands
+            commands::authenticate_chatgpt,
+            commands::check_chatgpt_auth_status,
+            commands::get_chatgpt_auth_info,
+            commands::configure_chatgpt_provider,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

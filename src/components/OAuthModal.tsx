@@ -6,6 +6,7 @@ interface OAuthModalProps {
   isOpen: boolean
   onAuthSuccess: () => void
   onCancel?: () => void
+  authType?: 'cloudflare' | 'chatgpt'
 }
 
 interface ServiceResponse {
@@ -18,7 +19,7 @@ interface ServiceResponse {
 
 type AuthState = 'idle' | 'initiating' | 'waiting' | 'success' | 'error'
 
-export default function OAuthModal({ isOpen, onAuthSuccess, onCancel }: OAuthModalProps) {
+export default function OAuthModal({ isOpen, onAuthSuccess, onCancel, authType = 'chatgpt' }: OAuthModalProps) {
   const [authState, setAuthState] = useState<AuthState>('idle')
   const [error, setError] = useState<string | null>(null)
   const [pollTimeoutId, setPollTimeoutId] = useState<number | null>(null)
@@ -50,21 +51,40 @@ export default function OAuthModal({ isOpen, onAuthSuccess, onCancel }: OAuthMod
       setAuthState('initiating')
       setError(null)
 
-      // Start the Cloudflare tunnel authentication flow
-      const response = await invoke<ServiceResponse>('oauth_login')
-      
-      if (response.success) {
+      if (authType === 'chatgpt') {
+        // Start the complete ChatGPT OAuth authentication flow
+        // This will open the browser automatically and handle the complete flow
         setAuthState('waiting')
         
-        // The cloudflared login command opens the browser automatically
-        // We just need to poll for authentication completion
-        pollForAuthCompletion()
+        try {
+          await invoke<string>('authenticate_chatgpt')
+          // If we get here, authentication was successful
+          setAuthState('success')
+          setTimeout(() => {
+            onAuthSuccess()
+          }, 1500) // Brief delay to show success state
+          return
+        } catch (authError) {
+          // If authentication fails, show the error
+          throw authError
+        }
       } else {
-        throw new Error(response.message || 'Failed to start Cloudflare authentication')
+        // Start the Cloudflare tunnel authentication flow
+        const response = await invoke<ServiceResponse>('oauth_login')
+        
+        if (response.success) {
+          setAuthState('waiting')
+          
+          // The cloudflared login command opens the browser automatically
+          // We just need to poll for authentication completion
+          pollForAuthCompletion()
+        } else {
+          throw new Error(response.message || 'Failed to start Cloudflare authentication')
+        }
       }
     } catch (err) {
-      console.error('Cloudflare authentication failed:', err)
-      setError(err instanceof Error ? err.message : 'Failed to start Cloudflare authentication')
+      console.error(`${authType} authentication failed:`, err)
+      setError(err instanceof Error ? err.message : `Failed to start ${authType} authentication`)
       setAuthState('error')
     }
   }
@@ -75,9 +95,15 @@ export default function OAuthModal({ isOpen, onAuthSuccess, onCancel }: OAuthMod
 
     const checkAuth = async (): Promise<boolean> => {
       try {
-        // Use dedicated auth check command to avoid expensive get_status calls
-        const isAuthenticated = await invoke<boolean>('check_auth_status')
-        return isAuthenticated
+        if (authType === 'chatgpt') {
+          // Check ChatGPT authentication status
+          const isAuthenticated = await invoke<boolean>('check_chatgpt_auth_status')
+          return isAuthenticated
+        } else {
+          // Use dedicated auth check command for Cloudflare to avoid expensive get_status calls
+          const isAuthenticated = await invoke<boolean>('check_auth_status')
+          return isAuthenticated
+        }
       } catch {
         return false
       }
@@ -153,14 +179,27 @@ export default function OAuthModal({ isOpen, onAuthSuccess, onCancel }: OAuthMod
           {/* Header */}
           <div className="oauth-modal__header">
             <div className="oauth-modal__logo">
-              <div className="oauth-modal__cloudflare-icon">
-                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                  <path d="M24.6 18.2c-.1-.4-.4-.7-.8-.8l-11.8-1.9c-.2 0-.4-.1-.5-.3-.1-.2 0-.4.1-.5l3.2-2.8c.2-.2.3-.5.2-.8-.1-.3-.4-.5-.7-.5H9.1c-1.3 0-2.4.9-2.6 2.1L5.7 16c0 .1-.1.2-.1.3 0 .8.6 1.4 1.4 1.4h16.8c.4 0 .7-.2.9-.6.1-.3.1-.6-.1-.9z" fill="#F38020"/>
-                  <path d="M29.1 20.1c-.3-1.8-1.9-3.1-3.8-3.1-.2 0-.4 0-.6.1-1.1-2.3-3.5-3.8-6.1-3.8-2.1 0-4 .9-5.3 2.4l-.8.9c-.1.1-.1.2 0 .3.1.1.2.1.3.1l12.5 2c1.4.2 2.4 1.4 2.4 2.8 0 .2 0 .4-.1.6 0 .1.1.2.2.2h.9c1.3 0 2.4-1 2.4-2.3v-.2z" fill="#F38020"/>
-                  <path d="M7.2 18.9c-.8 0-1.4-.6-1.4-1.4 0-.1 0-.2.1-.3l.8-3.2c.2-1.2 1.3-2.1 2.6-2.1h5.2c.3 0 .6.2.7.5.1.3 0 .6-.2.8l-3.2 2.8c-.1.1-.2.3-.1.5.1.2.3.3.5.3l11.8 1.9c.4.1.7.4.8.8.2.3.2.6.1.9-.2.4-.5.6-.9.6H7.2z" fill="#F38020"/>
-                </svg>
-              </div>
-              <h2 className="oauth-modal__title">Cloudflare Tunnel Authentication Required</h2>
+              {authType === 'chatgpt' ? (
+                <div className="oauth-modal__chatgpt-icon">
+                  <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <circle cx="16" cy="16" r="14" fill="#10a37f"/>
+                    <path d="M12 10h8c1.1 0 2 .9 2 2v8c0 1.1-.9 2-2 2h-8c-1.1 0-2-.9-2-2v-8c0-1.1.9-2 2-2zm4 3c-1.7 0-3 1.3-3 3s1.3 3 3 3 3-1.3 3-3-1.3-3-3-3z" fill="white"/>
+                  </svg>
+                </div>
+              ) : (
+                <div className="oauth-modal__cloudflare-icon">
+                  <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <path d="M24.6 18.2c-.1-.4-.4-.7-.8-.8l-11.8-1.9c-.2 0-.4-.1-.5-.3-.1-.2 0-.4.1-.5l3.2-2.8c.2-.2.3-.5.2-.8-.1-.3-.4-.5-.7-.5H9.1c-1.3 0-2.4.9-2.6 2.1L5.7 16c0 .1-.1.2-.1.3 0 .8.6 1.4 1.4 1.4h16.8c.4 0 .7-.2.9-.6.1-.3.1-.6-.1-.9z" fill="#F38020"/>
+                    <path d="M29.1 20.1c-.3-1.8-1.9-3.1-3.8-3.1-.2 0-.4 0-.6.1-1.1-2.3-3.5-3.8-6.1-3.8-2.1 0-4 .9-5.3 2.4l-.8.9c-.1.1-.1.2 0 .3.1.1.2.1.3.1l12.5 2c1.4.2 2.4 1.4 2.4 2.8 0 .2 0 .4-.1.6 0 .1.1.2.2.2h.9c1.3 0 2.4-1 2.4-2.3v-.2z" fill="#F38020"/>
+                    <path d="M7.2 18.9c-.8 0-1.4-.6-1.4-1.4 0-.1 0-.2.1-.3l.8-3.2c.2-1.2 1.3-2.1 2.6-2.1h5.2c.3 0 .6.2.7.5.1.3 0 .6-.2.8l-3.2 2.8c-.1.1-.2.3-.1.5.1.2.3.3.5.3l11.8 1.9c.4.1.7.4.8.8.2.3.2.6.1.9-.2.4-.5.6-.9.6H7.2z" fill="#F38020"/>
+                  </svg>
+                </div>
+              )}
+              <h2 className="oauth-modal__title">
+                {authType === 'chatgpt' 
+                  ? 'ChatGPT Authentication Required' 
+                  : 'Cloudflare Tunnel Authentication Required'}
+              </h2>
             </div>
           </div>
 
@@ -169,33 +208,66 @@ export default function OAuthModal({ isOpen, onAuthSuccess, onCancel }: OAuthMod
             {authState === 'idle' && (
               <>
                 <p className="oauth-modal__description">
-                  MindLink requires Cloudflare tunnel authentication to create secure tunnels for public access to your local API server.
+                  {authType === 'chatgpt' 
+                    ? 'MindLink requires ChatGPT authentication to access GPT models directly through your ChatGPT Plus/Pro account.'
+                    : 'MindLink requires Cloudflare tunnel authentication to create secure tunnels for public access to your local API server.'}
                 </p>
                 <div className="oauth-modal__features">
-                  <div className="oauth-modal__feature">
-                    <div className="oauth-modal__feature-icon">
-                      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                        <path d="M10 1L13 7L19 7.75L14.88 12.37L16 19L10 16L4 19L5.13 12.37L1 7.75L7 7L10 1Z" fill="currentColor"/>
-                      </svg>
-                    </div>
-                    <span>Secure tunnel authentication</span>
-                  </div>
-                  <div className="oauth-modal__feature">
-                    <div className="oauth-modal__feature-icon">
-                      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                        <path d="M10 2L3 7V17H17V7L10 2ZM10 11C8.9 11 8 10.1 8 9S8.9 7 10 7 12 7.9 12 9 11.1 11 10 11Z" fill="currentColor"/>
-                      </svg>
-                    </div>
-                    <span>Encrypted tunnel connections</span>
-                  </div>
-                  <div className="oauth-modal__feature">
-                    <div className="oauth-modal__feature-icon">
-                      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                        <path d="M10 0L15 5H12V9H8V5H5L10 0ZM18 11V15C18 16.66 16.66 18 15 18H5C3.34 18 2 16.66 2 15V11C2 9.34 3.34 8 5 8H6V10H5C4.45 10 4 10.45 4 11V15C4 15.55 4.45 16 5 16H15C15.55 16 16 15.55 16 15V11C16 10.45 15.55 10 15 10H14V8H15C16.66 8 18 9.34 18 11Z" fill="currentColor"/>
-                      </svg>
-                    </div>
-                    <span>No port forwarding needed</span>
-                  </div>
+                  {authType === 'chatgpt' ? (
+                    <>
+                      <div className="oauth-modal__feature">
+                        <div className="oauth-modal__feature-icon">
+                          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                            <path d="M10 1L13 7L19 7.75L14.88 12.37L16 19L10 16L4 19L5.13 12.37L1 7.75L7 7L10 1Z" fill="currentColor"/>
+                          </svg>
+                        </div>
+                        <span>Direct GPT model access</span>
+                      </div>
+                      <div className="oauth-modal__feature">
+                        <div className="oauth-modal__feature-icon">
+                          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                            <path d="M10 2L3 7V17H17V7L10 2ZM10 11C8.9 11 8 10.1 8 9S8.9 7 10 7 12 7.9 12 9 11.1 11 10 11Z" fill="currentColor"/>
+                          </svg>
+                        </div>
+                        <span>Uses your ChatGPT subscription</span>
+                      </div>
+                      <div className="oauth-modal__feature">
+                        <div className="oauth-modal__feature-icon">
+                          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                            <path d="M10 0L15 5H12V9H8V5H5L10 0ZM18 11V15C18 16.66 16.66 18 15 18H5C3.34 18 2 16.66 2 15V11C2 9.34 3.34 8 5 8H6V10H5C4.45 10 4 10.45 4 11V15C4 15.55 4.45 16 5 16H15C15.55 16 16 15.55 16 15V11C16 10.45 15.55 10 15 10H14V8H15C16.66 8 18 9.34 18 11Z" fill="currentColor"/>
+                          </svg>
+                        </div>
+                        <span>OpenAI-compatible API</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="oauth-modal__feature">
+                        <div className="oauth-modal__feature-icon">
+                          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                            <path d="M10 1L13 7L19 7.75L14.88 12.37L16 19L10 16L4 19L5.13 12.37L1 7.75L7 7L10 1Z" fill="currentColor"/>
+                          </svg>
+                        </div>
+                        <span>Secure tunnel authentication</span>
+                      </div>
+                      <div className="oauth-modal__feature">
+                        <div className="oauth-modal__feature-icon">
+                          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                            <path d="M10 2L3 7V17H17V7L10 2ZM10 11C8.9 11 8 10.1 8 9S8.9 7 10 7 12 7.9 12 9 11.1 11 10 11Z" fill="currentColor"/>
+                          </svg>
+                        </div>
+                        <span>Encrypted tunnel connections</span>
+                      </div>
+                      <div className="oauth-modal__feature">
+                        <div className="oauth-modal__feature-icon">
+                          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                            <path d="M10 0L15 5H12V9H8V5H5L10 0ZM18 11V15C18 16.66 16.66 18 15 18H5C3.34 18 2 16.66 2 15V11C2 9.34 3.34 8 5 8H6V10H5C4.45 10 4 10.45 4 11V15C4 15.55 4.45 16 5 16H15C15.55 16 16 15.55 16 15V11C16 10.45 15.55 10 15 10H14V8H15C16.66 8 18 9.34 18 11Z" fill="currentColor"/>
+                          </svg>
+                        </div>
+                        <span>No port forwarding needed</span>
+                      </div>
+                    </>
+                  )}
                 </div>
               </>
             )}
@@ -216,22 +288,43 @@ export default function OAuthModal({ isOpen, onAuthSuccess, onCancel }: OAuthMod
                 </div>
                 <h3>Complete Authentication in Browser</h3>
                 <p>
-                  We've opened your browser to the Cloudflare authentication page. 
-                  Please sign in with your Cloudflare account to authorize tunnel access.
+                  {authType === 'chatgpt'
+                    ? "We've opened your browser to the ChatGPT authentication page. Please sign in with your ChatGPT account to authorize API access."
+                    : "We've opened your browser to the Cloudflare authentication page. Please sign in with your Cloudflare account to authorize tunnel access."
+                  }
                 </p>
                 <div className="oauth-modal__waiting-steps">
-                  <div className="oauth-modal__step">
-                    <span className="oauth-modal__step-number">1</span>
-                    <span>Sign in to your Cloudflare account in the browser</span>
-                  </div>
-                  <div className="oauth-modal__step">
-                    <span className="oauth-modal__step-number">2</span>
-                    <span>Authorize MindLink to create tunnels</span>
-                  </div>
-                  <div className="oauth-modal__step">
-                    <span className="oauth-modal__step-number">3</span>
-                    <span>Return here - this window will detect completion</span>
-                  </div>
+                  {authType === 'chatgpt' ? (
+                    <>
+                      <div className="oauth-modal__step">
+                        <span className="oauth-modal__step-number">1</span>
+                        <span>Sign in to your ChatGPT account in the browser</span>
+                      </div>
+                      <div className="oauth-modal__step">
+                        <span className="oauth-modal__step-number">2</span>
+                        <span>Authorize MindLink API access</span>
+                      </div>
+                      <div className="oauth-modal__step">
+                        <span className="oauth-modal__step-number">3</span>
+                        <span>Return here - this window will detect completion</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="oauth-modal__step">
+                        <span className="oauth-modal__step-number">1</span>
+                        <span>Sign in to your Cloudflare account in the browser</span>
+                      </div>
+                      <div className="oauth-modal__step">
+                        <span className="oauth-modal__step-number">2</span>
+                        <span>Authorize MindLink to create tunnels</span>
+                      </div>
+                      <div className="oauth-modal__step">
+                        <span className="oauth-modal__step-number">3</span>
+                        <span>Return here - this window will detect completion</span>
+                      </div>
+                    </>
+                  )}
                 </div>
                 <div className="oauth-modal__waiting-hint">
                   <small>🔍 Checking authentication status every 10 seconds...</small>
@@ -248,7 +341,11 @@ export default function OAuthModal({ isOpen, onAuthSuccess, onCancel }: OAuthMod
                   </svg>
                 </div>
                 <h3>Authentication Successful!</h3>
-                <p>Welcome to MindLink. Your Cloudflare tunnels are ready to use.</p>
+                <p>
+                  {authType === 'chatgpt' 
+                    ? 'Welcome to MindLink. Your ChatGPT API access is ready to use.'
+                    : 'Welcome to MindLink. Your Cloudflare tunnels are ready to use.'}
+                </p>
               </div>
             )}
 
@@ -277,7 +374,9 @@ export default function OAuthModal({ isOpen, onAuthSuccess, onCancel }: OAuthMod
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                     <path d="M10 1L13 7L19 7.75L14.88 12.37L16 19L10 16L4 19L5.13 12.37L1 7.75L7 7L10 1Z" fill="currentColor"/>
                   </svg>
-                  Authenticate with Cloudflare
+                  {authType === 'chatgpt' 
+                    ? 'Authenticate with ChatGPT' 
+                    : 'Authenticate with Cloudflare'}
                 </button>
                 {onCancel && (
                   <button

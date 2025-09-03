@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { Settings } from 'lucide-react'
 import type { StatusResponse, ServiceResponse } from '../types/api'
@@ -10,6 +10,40 @@ interface BifrostButtonProps {
 
 const BifrostButton: React.FC<BifrostButtonProps> = ({ onError }) => {
   const [isLoading, setIsLoading] = useState(false)
+  const [bifrostStatus, setBifrostStatus] = useState<'running' | 'stopped' | 'unknown'>('unknown')
+  const [modelCount, setModelCount] = useState<number>(0)
+
+  const checkBifrostStatus = async () => {
+    try {
+      const status = await invoke<StatusResponse>('get_status')
+      
+      if (status?.bifrost_url) {
+        setBifrostStatus('running')
+        
+        // Try to get models to show provider count
+        try {
+          const models = await invoke<string[]>('get_bifrost_models')
+          setModelCount(models.length)
+        } catch (error) {
+          // Bifrost is running but models API might not be ready
+          setModelCount(0)
+        }
+      } else {
+        setBifrostStatus('stopped')
+        setModelCount(0)
+      }
+    } catch (error) {
+      setBifrostStatus('unknown')
+      setModelCount(0)
+    }
+  }
+
+  // Check status on mount and periodically
+  useEffect(() => {
+    checkBifrostStatus()
+    const interval = setInterval(checkBifrostStatus, 10000) // Check every 10 seconds
+    return () => clearInterval(interval)
+  }, [])
 
   const handleOpenBifrost = async () => {
     if (isLoading) return
@@ -65,6 +99,26 @@ const BifrostButton: React.FC<BifrostButtonProps> = ({ onError }) => {
       onError?.(errorMessage)
     } finally {
       setIsLoading(false)
+      // Refresh status after any operation
+      setTimeout(checkBifrostStatus, 1000)
+    }
+  }
+
+  const getStatusIndicator = () => {
+    switch (bifrostStatus) {
+      case 'running':
+        return (
+          <div className="bifrost-status-indicator bifrost-status-indicator--running" title={`Running • ${modelCount} models`}>
+            {modelCount > 0 && (
+              <span className="bifrost-model-count">{modelCount}</span>
+            )}
+          </div>
+        )
+      case 'stopped':
+        return <div className="bifrost-status-indicator bifrost-status-indicator--stopped" title="Stopped" />
+      case 'unknown':
+      default:
+        return <div className="bifrost-status-indicator bifrost-status-indicator--unknown" title="Status unknown" />
     }
   }
 
@@ -73,10 +127,13 @@ const BifrostButton: React.FC<BifrostButtonProps> = ({ onError }) => {
       className={`btn bifrost-button ${isLoading ? 'bifrost-button--loading' : ''}`}
       onClick={handleOpenBifrost}
       disabled={isLoading}
-      title="Open Bifrost LLM Router Dashboard"
+      title={`Open Bifrost LLM Router Dashboard • Status: ${bifrostStatus}${modelCount > 0 ? ` • ${modelCount} models` : ''}`}
     >
-      <Settings className="bifrost-button__icon" size={18} />
-      <span className="bifrost-button__label">Bifrost</span>
+      <div className="bifrost-button__content">
+        {getStatusIndicator()}
+        <span className="bifrost-button__label">Bifrost</span>
+        <Settings className="bifrost-button__icon" size={18} />
+      </div>
       {isLoading && (
         <div className="bifrost-button__loading">
           <div className="bifrost-button__spinner"></div>

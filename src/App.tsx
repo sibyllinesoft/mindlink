@@ -3,7 +3,6 @@ import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import Dashboard from './components/Dashboard'
 import UnifiedNavigation from './components/UnifiedNavigation'
-import OAuthModal from './components/OAuthModal'
 import type { StatusResponse, ServiceResponse } from './types/api'
 import './design-system/index.css'
 import './App.css'
@@ -14,7 +13,6 @@ interface AppState {
   publicUrl: string | null
   isAuthenticated: boolean
   autoStartAttempted: boolean
-  showOAuthModal: boolean
   authCheckComplete: boolean
   errorMessage: string | null
 }
@@ -26,7 +24,6 @@ function App() {
     publicUrl: null,
     isAuthenticated: false,
     autoStartAttempted: false,
-    showOAuthModal: false,
     authCheckComplete: false,
     errorMessage: null
   })
@@ -35,56 +32,52 @@ function App() {
     // Initialize the app with auth check and auto-start behavior
     const initApp = async () => {
       try {
-        // Get initial status including authentication
-        const status = await invoke<StatusResponse>('get_status')
-        const isAuthenticated = status?.is_authenticated === true
+        // Check actual ChatGPT authentication status
+        const isAuthenticated = await invoke<boolean>('check_chatgpt_auth_status')
         
         setState(prev => ({ 
           ...prev, 
           isAuthenticated,
           authCheckComplete: true,
-          showOAuthModal: !isAuthenticated,
           serverStatus: 'running' // Server is always running
         }))
         
-        // Only proceed with tunnel setup if authenticated
-        if (isAuthenticated) {
-          // Get initial tunnel status
-          try {
-            const tunnelResponse = await invoke<ServiceResponse>('get_tunnel_status')
-            const tunnelStatus = tunnelResponse?.success ? 
-              (tunnelResponse.tunnel_url ? 'connected' : 'disconnected') : 'disconnected'
-            
-            // Set both tunnel status and public URL from initial response
-            setState(prev => ({ 
-              ...prev, 
-              tunnelStatus: tunnelStatus as any,
-              publicUrl: tunnelResponse?.tunnel_url || null
-            }))
-            
-            // Auto-start tunnel if not already connected
-            if (tunnelStatus !== 'connected') {
-              setState(prev => ({ ...prev, autoStartAttempted: true, tunnelStatus: 'connecting' }))
-              try {
-                const tunnelResponse = await invoke<ServiceResponse>('create_tunnel')
-                if (tunnelResponse?.success) {
-                  setState(prev => ({ 
-                    ...prev, 
-                    tunnelStatus: 'connected',
-                    publicUrl: tunnelResponse.tunnel_url || null
-                  }))
-                } else {
-                  setState(prev => ({ ...prev, tunnelStatus: 'error' }))
-                }
-              } catch (error) {
-                console.error('Auto-start tunnel failed:', error)
+        // Proceed with tunnel setup
+        // Get initial tunnel status
+        try {
+          const tunnelResponse = await invoke<ServiceResponse>('get_tunnel_status')
+          const tunnelStatus = tunnelResponse?.success ? 
+            (tunnelResponse.tunnel_url ? 'connected' : 'disconnected') : 'disconnected'
+          
+          // Set both tunnel status and public URL from initial response
+          setState(prev => ({ 
+            ...prev, 
+            tunnelStatus: tunnelStatus as any,
+            publicUrl: tunnelResponse?.tunnel_url || null
+          }))
+          
+          // Auto-start tunnel if not already connected
+          if (tunnelStatus !== 'connected') {
+            setState(prev => ({ ...prev, autoStartAttempted: true, tunnelStatus: 'connecting' }))
+            try {
+              const tunnelResponse = await invoke<ServiceResponse>('create_tunnel')
+              if (tunnelResponse?.success) {
+                setState(prev => ({ 
+                  ...prev, 
+                  tunnelStatus: 'connected',
+                  publicUrl: tunnelResponse.tunnel_url || null
+                }))
+              } else {
                 setState(prev => ({ ...prev, tunnelStatus: 'error' }))
               }
+            } catch (error) {
+              console.error('Auto-start tunnel failed:', error)
+              setState(prev => ({ ...prev, tunnelStatus: 'error' }))
             }
-          } catch (error) {
-            console.error('Failed to check tunnel status:', error)
-            setState(prev => ({ ...prev, tunnelStatus: 'error' }))
           }
+        } catch (error) {
+          console.error('Failed to check tunnel status:', error)
+          setState(prev => ({ ...prev, tunnelStatus: 'error' }))
         }
       } catch (error) {
         console.error('Failed to initialize app:', error)
@@ -93,7 +86,6 @@ function App() {
           ...prev, 
           isAuthenticated: false,
           authCheckComplete: true,
-          showOAuthModal: true
         }))
       }
     }
@@ -124,7 +116,6 @@ function App() {
       setState(prev => ({ 
         ...prev, 
         isAuthenticated,
-        showOAuthModal: !isAuthenticated
       }))
     }).then(unsub => unsubscribeListeners.push(unsub))
 
@@ -168,13 +159,11 @@ function App() {
   const handleAuthSuccess = async () => {
     // Refresh status after successful authentication
     try {
-      const status = await invoke<StatusResponse>('get_status')
-      const isAuthenticated = status?.is_authenticated === true
+      const isAuthenticated = await invoke<boolean>('check_chatgpt_auth_status')
       
       setState(prev => ({ 
         ...prev, 
         isAuthenticated,
-        showOAuthModal: false
       }))
 
       // Auto-start tunnel after successful authentication
@@ -201,9 +190,6 @@ function App() {
     }
   }
 
-  const handleAuthCancel = () => {
-    setState(prev => ({ ...prev, showOAuthModal: false }))
-  }
 
   const handleBifrostError = (message: string) => {
     setState(prev => ({ ...prev, errorMessage: message }))
@@ -215,12 +201,6 @@ function App() {
 
   return (
     <div className="app">
-      {/* OAuth Modal - shown when authentication is required */}
-      <OAuthModal
-        isOpen={state.showOAuthModal && state.authCheckComplete}
-        onAuthSuccess={handleAuthSuccess}
-        onCancel={handleAuthCancel}
-      />
 
       {/* Show main app when auth check is complete */}
       {state.authCheckComplete && (
@@ -247,11 +227,12 @@ function App() {
             isAuthenticated={state.isAuthenticated}
             onToggleTunnel={handleToggleTunnel}
             onBifrostError={handleBifrostError}
+            onAuthSuccess={handleAuthSuccess}
           />
 
-          {/* Main Content - Only show Dashboard when authenticated */}
-          {state.isAuthenticated && (
-            <main className="app-main">
+          {/* Main Content */}
+          <main className="app-main">
+            {state.isAuthenticated ? (
               <Dashboard
                 serverStatus={state.serverStatus}
                 tunnelStatus={state.tunnelStatus}
@@ -259,8 +240,44 @@ function App() {
                 isAuthenticated={state.isAuthenticated}
                 onToggleTunnel={handleToggleTunnel}
               />
-            </main>
-          )}
+            ) : (
+              <div className="auth-welcome">
+                <div className="auth-welcome__content">
+                  <div className="auth-welcome__icon">
+                    <svg width="64" height="64" viewBox="0 0 64 64" fill="none" className="auth-welcome__chatgpt-logo">
+                      <circle cx="32" cy="32" r="28" fill="#10a37f"/>
+                      <path d="M20 24h24c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H20c-1.1 0-2-.9-2-2V26c0-1.1.9-2 2-2z" fill="white"/>
+                    </svg>
+                  </div>
+                  <h2 className="auth-welcome__title">Welcome to MindLink</h2>
+                  <p className="auth-welcome__description">
+                    Connect your ChatGPT Plus/Pro account to start using MindLink as an OpenAI-compatible API gateway.
+                  </p>
+                  <div className="auth-welcome__features">
+                    <div className="auth-welcome__feature">
+                      <span className="auth-welcome__feature-icon">🔑</span>
+                      <span>Uses your existing ChatGPT subscription</span>
+                    </div>
+                    <div className="auth-welcome__feature">
+                      <span className="auth-welcome__feature-icon">🚀</span>
+                      <span>OpenAI-compatible API endpoints</span>
+                    </div>
+                    <div className="auth-welcome__feature">
+                      <span className="auth-welcome__feature-icon">🔒</span>
+                      <span>Secure local processing</span>
+                    </div>
+                    <div className="auth-welcome__feature">
+                      <span className="auth-welcome__feature-icon">🌐</span>
+                      <span>Optional public tunnel access</span>
+                    </div>
+                  </div>
+                  <p className="auth-welcome__cta">
+                    Click <strong>"Login with ChatGPT"</strong> in the navigation bar above to get started.
+                  </p>
+                </div>
+              </div>
+            )}
+          </main>
         </>
       )}
 

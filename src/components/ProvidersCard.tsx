@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import { CheckCircle, AlertCircle, LogIn } from 'lucide-react'
+import { LogIn, Settings } from 'lucide-react'
+import { invoke } from '@tauri-apps/api/core'
 import { pluginLoader } from '../plugins/dynamic-loader'
 import { pluginRegistry } from '../plugins/registry'
 import type { ProviderPlugin, ProviderStatus } from '../plugins/types'
+import { OllamaPlugin } from '../plugins/providers/ollama'
+import OllamaConfigModal from './OllamaConfigModal'
 import './ProvidersCard.css'
 
 interface ProviderWithStatus {
@@ -16,6 +19,8 @@ const ProvidersCard: React.FC<ProvidersCardProps> = () => {
   const [providers, setProviders] = useState<ProviderWithStatus[]>([])
   const [loading, setLoading] = useState(false)
   const [initialized, setInitialized] = useState(false)
+  const [configModalOpen, setConfigModalOpen] = useState<string | null>(null)
+  const [isAuthenticating, setIsAuthenticating] = useState(false)
 
   // Initialize the plugin system
   const initializePlugins = async () => {
@@ -91,59 +96,98 @@ const ProvidersCard: React.FC<ProvidersCardProps> = () => {
   }
 
   const handleLogin = async (providerWithStatus: ProviderWithStatus) => {
+    // Prevent multiple simultaneous authentication attempts
+    if (isAuthenticating) {
+      console.log('🚫 Authentication already in progress, ignoring request')
+      return
+    }
+
     try {
       setLoading(true)
+      setIsAuthenticating(true)
       const { plugin } = providerWithStatus
       
-      console.log(`Initiating OAuth for ${plugin.displayName} with command: ${plugin.authCommand}`)
+      console.log(`Initiating login for ${plugin.displayName}`)
       
-      // Get OAuth URL from plugin
-      const oauthUrl = await plugin.initiateOAuth()
-      
-      // Open OAuth URL in popup
-      const popup = window.open(
-        oauthUrl,
-        `${plugin.displayName} OAuth`,
-        'width=600,height=700,scrollbars=yes,resizable=yes'
-      )
-      
-      // TODO: In a real implementation, listen for OAuth callback
-      // For now, simulate success after a delay for demonstration
-      setTimeout(async () => {
+      // Special handling for ChatGPT - use backend authentication
+      if (plugin.id === 'openai' || plugin.displayName === 'ChatGPT' || plugin.displayName === 'OpenAI') {
         try {
-          // Simulate successful OAuth callback
-          // In reality, this would be handled by the OAuth callback endpoint
+          console.log('🔑 Starting backend ChatGPT authentication...')
+          // Use the backend ChatGPT authentication
+          await invoke('authenticate_chatgpt')
+          console.log('✅ Backend ChatGPT authentication completed')
           
-          // Refresh the specific provider's status
-          const updatedStatus = await plugin.getConnectionStatus()
+          // Wait a moment for backend to update, then refresh provider statuses
+          console.log('🔄 Waiting 2 seconds before refreshing provider statuses...')
+          setTimeout(async () => {
+            console.log('🔄 Refreshing provider statuses after authentication...')
+            await refreshProviderStatuses()
+            setIsAuthenticating(false)
+          }, 2000)
           
-          setProviders(prev => prev.map(p => 
-            p.plugin.id === plugin.id 
-              ? { ...p, status: updatedStatus }
-              : p
-          ))
-          
-          popup?.close()
         } catch (error) {
-          console.error(`Failed to update ${plugin.displayName} status:`, error)
-        } finally {
-          setLoading(false)
+          console.error('❌ Backend ChatGPT authentication failed:', error)
+          console.error('❌ Error details:', error)
+          setIsAuthenticating(false)
         }
-      }, 3000)
+      } else {
+        // Original plugin-based OAuth for other providers
+        console.log(`Initiating OAuth for ${plugin.displayName} with command: ${plugin.authCommand}`)
+        
+        // Get OAuth URL from plugin
+        const oauthUrl = await plugin.initiateOAuth()
+        
+        // Open OAuth URL in popup
+        const popup = window.open(
+          oauthUrl,
+          `${plugin.displayName} OAuth`,
+          'width=600,height=700,scrollbars=yes,resizable=yes'
+        )
+        
+        // TODO: In a real implementation, listen for OAuth callback
+        // For now, simulate success after a delay for demonstration
+        setTimeout(async () => {
+          try {
+            // Simulate successful OAuth callback
+            // In reality, this would be handled by the OAuth callback endpoint
+            
+            // Refresh the specific provider's status
+            const updatedStatus = await plugin.getConnectionStatus()
+            
+            setProviders(prev => prev.map(p => 
+              p.plugin.id === plugin.id 
+                ? { ...p, status: updatedStatus }
+                : p
+            ))
+            
+            popup?.close()
+          } catch (error) {
+            console.error(`Failed to update ${plugin.displayName} status:`, error)
+          }
+        }, 3000)
+      }
       
     } catch (error) {
-      console.error('OAuth login failed:', error)
+      console.error('Login failed:', error)
+      setIsAuthenticating(false)
+    } finally {
       setLoading(false)
     }
   }
 
-  const getStatusIcon = (status: ProviderStatus['status']) => {
+
+  const handleConfigure = (providerWithStatus: ProviderWithStatus) => {
+    console.log(`Opening configuration for ${providerWithStatus.plugin.displayName}`)
+    setConfigModalOpen(providerWithStatus.plugin.id)
+  }
+
+  const getStatusDot = (status: ProviderStatus['status']) => {
     switch (status) {
       case 'connected':
-        return <CheckCircle className="provider-status-icon provider-status-icon--connected" />
+        return <div className="provider-status-dot provider-status-dot--connected" />
       case 'error':
       case 'expired':
-        return <AlertCircle className="provider-status-icon provider-status-icon--error" />
+        return <div className="provider-status-dot provider-status-dot--error" />
       default:
         return <div className="provider-status-dot provider-status-dot--disconnected" />
     }
@@ -171,61 +215,102 @@ const ProvidersCard: React.FC<ProvidersCardProps> = () => {
                 <div className="provider-info">
                   <div className="provider-header">
                     <div className="provider-name-section">
+                      {getStatusDot(status.status)}
                       <span className="provider-name">{plugin.displayName}</span>
-                      {getStatusIcon(status.status)}
                     </div>
                   </div>
                   
-                  {status.status === 'connected' && status.connectionInfo ? (
-                    <div className="provider-details">
-                      {status.connectionInfo.model && (
-                        <div className="provider-detail">
-                          <span className="provider-detail-label">Model:</span>
-                          <span className="provider-detail-value">{status.connectionInfo.model}</span>
-                        </div>
-                      )}
-                      {status.connectionInfo.lastUsed && (
-                        <div className="provider-detail">
-                          <span className="provider-detail-label">Last used:</span>
-                          <span className="provider-detail-value">
-                            {formatLastUsed(status.connectionInfo.lastUsed)}
-                          </span>
-                        </div>
-                      )}
-                      {status.connectionInfo.plan && (
-                        <div className="provider-detail">
-                          <span className="provider-detail-label">Plan:</span>
-                          <span className="provider-detail-value">{status.connectionInfo.plan}</span>
-                        </div>
-                      )}
+                  {/* For Ollama, show model on separate row */}
+                  {plugin.id === 'ollama' && status.status === 'connected' && status.connectionInfo?.model && (
+                    <div className="provider-model-row">
+                      <span className="provider-model-name">{status.connectionInfo.model}</span>
                     </div>
+                  )}
+                  
+                  {/* Status-based content */}
+                  {status.status === 'connected' ? (
+                    // Connected providers - show provider-specific details
+                    (plugin.id === 'openai' || plugin.displayName === 'ChatGPT' || plugin.displayName === 'OpenAI') ? (
+                      // ChatGPT - show minimal details (plan only)
+                      <div className="provider-details">
+                        {status.connectionInfo?.plan && (
+                          <div className="provider-detail">
+                            <span className="provider-detail-label">Plan:</span>
+                            <span className="provider-detail-value">{status.connectionInfo.plan}</span>
+                          </div>
+                        )}
+                      </div>
+                    ) : plugin.id !== 'ollama' && status.connectionInfo ? (
+                      // Other providers (non-Ollama, non-ChatGPT) - show full details
+                      <div className="provider-details">
+                        {status.connectionInfo.model && (
+                          <div className="provider-detail">
+                            <span className="provider-detail-label">Model:</span>
+                            <span className="provider-detail-value">{status.connectionInfo.model}</span>
+                          </div>
+                        )}
+                        {status.connectionInfo.lastUsed && (
+                          <div className="provider-detail">
+                            <span className="provider-detail-label">Last used:</span>
+                            <span className="provider-detail-value">
+                              {formatLastUsed(status.connectionInfo.lastUsed)}
+                            </span>
+                          </div>
+                        )}
+                        {status.connectionInfo.plan && (
+                          <div className="provider-detail">
+                            <span className="provider-detail-label">Plan:</span>
+                            <span className="provider-detail-value">{status.connectionInfo.plan}</span>
+                          </div>
+                        )}
+                      </div>
+                    ) : null
                   ) : status.status === 'error' ? (
                     <div className="provider-disconnected">
                       <span className="text-secondary">Error: {status.error || 'Connection failed'}</span>
                     </div>
-                  ) : (
+                  ) : plugin.id !== 'ollama' ? (
                     <div className="provider-disconnected">
                       <span className="text-secondary">Not authenticated</span>
                     </div>
-                  )}
+                  ) : null}
                 </div>
                 
                 <div className="provider-actions">
                   {status.status === 'connected' ? (
-                    <div className="provider-connected-badge">
-                      <CheckCircle className="provider-connected-icon" />
-                      <span className="text-success">Connected</span>
+                    <div className="provider-connected-section">
+                      {plugin.supportsConfiguration && (
+                        <button
+                          className="btn btn--ghost btn--sm"
+                          onClick={() => handleConfigure(providerWithStatus)}
+                          title={`Configure ${plugin.displayName}`}
+                        >
+                          <Settings className="btn__icon" />
+                        </button>
+                      )}
                     </div>
                   ) : (
-                    <button
-                      className="btn btn--primary btn--sm"
-                      onClick={() => handleLogin(providerWithStatus)}
-                      disabled={loading}
-                      title={`Login to ${plugin.displayName}`}
-                    >
-                      <LogIn className="btn__icon" />
-                      Login
-                    </button>
+                    <div className="provider-disconnected-section">
+                      <button
+                        className="btn btn--primary btn--sm"
+                        onClick={() => handleLogin(providerWithStatus)}
+                        disabled={loading || isAuthenticating}
+                        title={`Login to ${plugin.displayName}`}
+                      >
+                        <LogIn className="btn__icon" />
+                        {isAuthenticating && plugin.displayName === 'ChatGPT' ? 'Authenticating...' : 'Login'}
+                      </button>
+                      {plugin.supportsConfiguration && (
+                        <button
+                          className="btn btn--ghost btn--sm"
+                          onClick={() => handleConfigure(providerWithStatus)}
+                          disabled={loading}
+                          title={`Configure ${plugin.displayName}`}
+                        >
+                          <Settings className="btn__icon" />
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
@@ -239,6 +324,16 @@ const ProvidersCard: React.FC<ProvidersCardProps> = () => {
           </p>
         </div>
       </div>
+
+      {/* Configuration Modals */}
+      {configModalOpen === 'ollama' && (
+        <OllamaConfigModal
+          isOpen={true}
+          onClose={() => setConfigModalOpen(null)}
+          plugin={providers.find(p => p.plugin.id === 'ollama')?.plugin as OllamaPlugin}
+          onConfigSaved={refreshProviderStatuses}
+        />
+      )}
     </div>
   )
 }

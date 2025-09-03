@@ -1,5 +1,6 @@
 import { BaseProviderPlugin } from '../base-plugin'
 import { ProviderStatus, ProviderConnectionInfo, OAuthConfig } from '../types'
+import { invoke } from '@tauri-apps/api/core'
 
 /**
  * OpenAI Provider Plugin
@@ -8,10 +9,10 @@ import { ProviderStatus, ProviderConnectionInfo, OAuthConfig } from '../types'
 export class OpenAIPlugin extends BaseProviderPlugin {
   readonly id = 'openai'
   readonly name = 'openai'
-  readonly displayName = 'OpenAI'
+  readonly displayName = 'ChatGPT'
   readonly version = '1.0.0'
-  readonly description = 'Connect to OpenAI GPT models via API'
-  readonly homepage = 'https://openai.com'
+  readonly description = 'Connect to ChatGPT Plus/Pro via OAuth'
+  readonly homepage = 'https://chatgpt.com'
   readonly authCommand = 'openai-codex auth login'
   
   readonly oauthConfig: OAuthConfig = {
@@ -60,40 +61,68 @@ export class OpenAIPlugin extends BaseProviderPlugin {
     const lastChecked = new Date().toISOString()
     
     try {
-      if (!this.apiKey) {
+      // Check backend ChatGPT authentication status
+      console.log('🔍 ChatGPT plugin: checking backend auth status...')
+      const isAuthenticated = await invoke<boolean>('check_chatgpt_auth_status')
+      console.log('🔍 ChatGPT plugin: backend auth status =', isAuthenticated)
+      
+      if (!isAuthenticated) {
+        console.log('❌ ChatGPT plugin: not authenticated')
         return {
           status: 'disconnected',
           lastChecked
         }
       }
       
-      // Test API connection by fetching user info or models
-      const connectionInfo = await this.refreshConnectionInfo()
+      console.log('✅ ChatGPT plugin: authenticated!')
       
-      if (connectionInfo) {
-        return {
-          status: 'connected',
-          connectionInfo,
-          lastChecked
+      // Get connection info from backend
+      try {
+        const authInfo = await invoke('get_chatgpt_auth_info') as any
+        
+        if (authInfo) {
+          const connectionInfo: ProviderConnectionInfo = {
+            email: authInfo.email || 'user@chatgpt.com',
+            model: 'ChatGPT Plus',
+            lastUsed: new Date().toISOString(),
+            plan: 'ChatGPT Plus'
+          }
+          
+          return {
+            status: 'connected',
+            connectionInfo,
+            lastChecked
+          }
         }
-      } else {
-        return {
-          status: 'error',
-          error: 'Failed to fetch connection info',
-          lastChecked
-        }
+      } catch (error) {
+        console.warn('Could not get ChatGPT auth info:', error)
+        // Still show as connected if auth status is true
+      }
+      
+      // Fallback - authenticated but no detailed info
+      return {
+        status: 'connected',
+        connectionInfo: {
+          email: 'user@chatgpt.com',
+          model: 'ChatGPT Plus',
+          lastUsed: new Date().toISOString(),
+          plan: 'ChatGPT Plus'
+        },
+        lastChecked
       }
       
     } catch (error) {
-      console.error('OpenAI connection test failed:', error)
-      
-      // Check if it's an authentication error
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      const isAuthError = errorMessage.includes('401') || errorMessage.includes('authentication')
+      console.error('❌ ChatGPT backend connection test failed:', error)
+      console.error('❌ Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : 'No stack',
+        type: typeof error,
+        value: error
+      })
       
       return {
-        status: isAuthError ? 'disconnected' : 'error',
-        error: errorMessage,
+        status: 'error',
+        error: error instanceof Error ? error.message : 'Backend connection failed',
         lastChecked
       }
     }

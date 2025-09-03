@@ -5,7 +5,7 @@
   "identifier": "com.mindlink.mindlink",
   "build": {
     "beforeBuildCommand": "npm run build",
-    "beforeDevCommand": "npm run dev",
+    "beforeDevCommand": "",
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1420"
   },
@@ -45,9 +45,6 @@
       "icons/128x128.png"
     ],
     "resources": [],
-    "externalBin": [
-      "binaries/bifrost-http"
-    ],
     "createUpdaterArtifacts": true,
     "publisher": "MindLink",
     "homepage": "https://github.com/mindlink/mindlink",

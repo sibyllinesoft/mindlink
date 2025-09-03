@@ -13,6 +13,8 @@ use tokio::fs;
 use tokio::net::TcpListener;
 use tokio::sync::RwLock;
 use url::Url;
+use jsonwebtoken::{decode, decode_header, DecodingKey, Validation, Algorithm};
+use serde_json::Value;
 
 use crate::error::{MindLinkError, MindLinkResult};
 use crate::{auth_error, log_error, log_info};
@@ -21,17 +23,25 @@ use crate::{auth_error, log_error, log_info};
 pub struct AuthTokens {
     pub access_token: String,
     pub refresh_token: String,
+    pub id_token: String,
     pub expires_at: DateTime<Utc>,
     pub token_type: String,
+    pub account_id: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TokenResponse {
     pub access_token: String,
+    pub id_token: String,
     pub token_type: String,
     pub expires_in: Option<u64>,
     pub refresh_token: Option<String>,
     pub scope: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ApiKeyResponse {
+    pub api_key: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -70,12 +80,13 @@ impl OAuthState {
     }
 }
 
-// OpenAI OAuth configuration
-const OPENAI_AUTH_URL: &str = "https://auth0.openai.com/authorize";
-const OPENAI_TOKEN_URL: &str = "https://auth0.openai.com/oauth/token";
-const CLIENT_ID: &str = "TdJIcbe16WoTHtN95nyywh5E4yOo6ItG"; // OpenAI's public client ID
-const SCOPE: &str =
-    "openid profile email offline_access model.request model.read organization.read";
+// ChatGPT OAuth configuration using Codex CLI client ID
+const CHATGPT_AUTH_URL: &str = "https://auth.openai.com/oauth/authorize";
+const CHATGPT_TOKEN_URL: &str = "https://auth.openai.com/oauth/token";
+const CLIENT_ID: &str = "app_EMoamEEZ73f0CkXaXp7hrann"; // Codex CLI's client ID for ChatGPT access
+const SCOPE: &str = "openid profile email offline_access";
+const REDIRECT_PORT: u16 = 1455; // Required port for Codex CLI flow
+const CHATGPT_API_URL: &str = "https://chatgpt.com/backend-api/codex/responses";
 
 #[derive(Debug)]
 pub struct AuthManager {
@@ -190,7 +201,7 @@ impl AuthManager {
         refresh_params.insert("client_id", CLIENT_ID);
 
         let response = client
-            .post(OPENAI_TOKEN_URL)
+            .post(CHATGPT_TOKEN_URL)
             .form(&refresh_params)
             .send()
             .await
@@ -212,9 +223,11 @@ impl AuthManager {
             refresh_token: refresh_response
                 .refresh_token
                 .unwrap_or(current_tokens.refresh_token.clone()),
+            id_token: current_tokens.id_token.clone(),
             expires_at: Utc::now()
                 + Duration::seconds(refresh_response.expires_in.unwrap_or(3600) as i64),
             token_type: refresh_response.token_type,
+            account_id: current_tokens.account_id.clone(),
         };
 
         self.tokens = Some(new_tokens);
@@ -236,21 +249,20 @@ impl AuthManager {
     }
 
     pub async fn login(&mut self) -> Result<()> {
-        println!("🔐 Starting OAuth2 PKCE authentication flow...");
+        println!("🔐 Starting ChatGPT OAuth2 PKCE authentication flow...");
 
         // Generate PKCE parameters
         let code_verifier = Self::generate_code_verifier();
         let code_challenge = Self::generate_code_challenge(&code_verifier)?;
         let state = Self::generate_state();
 
-        // Find an available port for the callback server
-        let listener = TcpListener::bind("127.0.0.1:0").await?;
-        let callback_port = listener.local_addr()?.port();
-        let redirect_uri = format!("http://127.0.0.1:{}/callback", callback_port);
+        // Use fixed port for Codex CLI compatibility
+        let redirect_uri = format!("http://localhost:{}/auth/callback", REDIRECT_PORT);
+        let listener = TcpListener::bind(format!("127.0.0.1:{}", REDIRECT_PORT)).await?;
 
         println!(
             "📡 Starting local callback server on port {}",
-            callback_port
+            REDIRECT_PORT
         );
 
         // Prepare OAuth state
@@ -260,9 +272,9 @@ impl AuthManager {
             auth_result: Arc::new(RwLock::new(None)),
         });
 
-        // Build authorization URL
-        let auth_url = Self::build_auth_url(&redirect_uri, &code_challenge, &state)?;
-        println!("🌐 Opening browser for authentication...");
+        // Build authorization URL for ChatGPT
+        let auth_url = Self::build_chatgpt_auth_url(&redirect_uri, &code_challenge, &state)?;
+        println!("🌐 Opening browser for ChatGPT authentication...");
 
         // Open browser using system command
         if let Err(e) = Self::open_browser(&auth_url).await {
@@ -278,14 +290,14 @@ impl AuthManager {
 
         // Exchange authorization code for tokens
         let tokens = self
-            .exchange_code_for_tokens(&auth_code, &code_verifier, &redirect_uri)
+            .exchange_code_for_chatgpt_tokens(&auth_code, &code_verifier, &redirect_uri)
             .await?;
 
         // Store tokens
         self.tokens = Some(tokens);
         self.save_tokens().await?;
 
-        println!("✅ Authentication successful!");
+        println!("✅ ChatGPT authentication successful!");
         Ok(())
     }
 
@@ -304,7 +316,7 @@ impl AuthManager {
         form_params.insert("client_id", CLIENT_ID);
 
         let response = client
-            .post(OPENAI_TOKEN_URL)
+            .post(CHATGPT_TOKEN_URL)
             .form(&form_params)
             .header("Content-Type", "application/x-www-form-urlencoded")
             .send()
@@ -332,8 +344,10 @@ impl AuthManager {
             refresh_token: refresh_response
                 .refresh_token
                 .unwrap_or(tokens.refresh_token.clone()),
+            id_token: tokens.id_token.clone(),
             expires_at,
             token_type: refresh_response.token_type,
+            account_id: tokens.account_id.clone(),
         };
 
         self.tokens = Some(new_tokens);
@@ -357,6 +371,11 @@ impl AuthManager {
 
     pub fn get_access_token(&self) -> Option<&str> {
         self.tokens.as_ref().map(|t| t.access_token.as_str())
+    }
+
+    /// Get the current authentication tokens
+    pub fn get_tokens(&self) -> Option<&AuthTokens> {
+        self.tokens.as_ref()
     }
 
     async fn load_tokens(&mut self) -> Result<()> {
@@ -383,8 +402,10 @@ impl AuthManager {
                         let new_tokens = AuthTokens {
                             access_token: old_tokens.access_token,
                             refresh_token: old_tokens.refresh_token,
+                            id_token: "".to_string(), // Empty for migrated tokens
                             expires_at: old_tokens.expires_at,
                             token_type: "Bearer".to_string(), // Default for OpenAI
+                            account_id: "".to_string(), // Empty for migrated tokens
                         };
                         self.tokens = Some(new_tokens);
                         // Save in new format
@@ -444,8 +465,8 @@ impl AuthManager {
         URL_SAFE_NO_PAD.encode(&bytes)
     }
 
-    fn build_auth_url(redirect_uri: &str, code_challenge: &str, state: &str) -> Result<String> {
-        let mut url = Url::parse(OPENAI_AUTH_URL)?;
+    fn build_chatgpt_auth_url(redirect_uri: &str, code_challenge: &str, state: &str) -> Result<String> {
+        let mut url = Url::parse(CHATGPT_AUTH_URL)?;
         url.query_pairs_mut()
             .append_pair("response_type", "code")
             .append_pair("client_id", CLIENT_ID)
@@ -454,30 +475,19 @@ impl AuthManager {
             .append_pair("state", state)
             .append_pair("code_challenge", code_challenge)
             .append_pair("code_challenge_method", "S256")
-            .append_pair("prompt", "login")
-            .append_pair("audience", "https://api.openai.com/v1");
+            .append_pair("id_token_add_organizations", "true")
+            .append_pair("codex_cli_simplified_flow", "true"); // Critical for Codex CLI access
         Ok(url.to_string())
     }
 
     async fn open_browser(url: &str) -> Result<()> {
-        // Use system commands to open browser
-        #[cfg(target_os = "linux")]
-        {
-            tokio::process::Command::new("xdg-open").arg(url).spawn()?;
-        }
-
-        #[cfg(target_os = "macos")]
-        {
-            tokio::process::Command::new("open").arg(url).spawn()?;
-        }
-
-        #[cfg(target_os = "windows")]
-        {
-            tokio::process::Command::new("cmd")
-                .args(["/C", "start", url])
-                .spawn()?;
-        }
-
+        // Use Tauri's opener plugin for better compatibility
+        println!("🌐 Opening OAuth URL in default browser: {}", url);
+        
+        // Use tauri_plugin_opener for cross-platform URL opening
+        tauri_plugin_opener::open_url(url, None::<&str>)
+            .map_err(|e| anyhow!("Failed to open browser: {}", e))?;
+        
         Ok(())
     }
 
@@ -490,7 +500,7 @@ impl AuthManager {
 
         // Create the callback router
         let app = Router::new().route(
-            "/callback",
+            "/auth/callback",
             get({
                 let oauth_state = oauth_state.clone();
                 move |query: Query<AuthCallbackQuery>| Self::handle_callback(query, oauth_state)
@@ -542,7 +552,7 @@ impl AuthManager {
         Query(query): Query<AuthCallbackQuery>,
         oauth_state: Arc<OAuthState>,
     ) -> Html<&'static str> {
-        println!("📨 Received authentication callback");
+        println!("📨 Received ChatGPT authentication callback");
 
         let mut auth_result = oauth_state.auth_result.write().await;
 
@@ -564,7 +574,7 @@ impl AuthManager {
                 .as_deref()
                 .unwrap_or("Unknown error");
             *auth_result = Some(Err(
-                anyhow!("OAuth error: {} - {}", error, error_desc).into()
+                anyhow!("ChatGPT OAuth error: {} - {}", error, error_desc).into()
             ));
             return Html(SUCCESS_PAGE_ERROR);
         }
@@ -579,13 +589,13 @@ impl AuthManager {
         }
     }
 
-    async fn exchange_code_for_tokens(
+    async fn exchange_code_for_chatgpt_tokens(
         &self,
         auth_code: &str,
         code_verifier: &str,
         redirect_uri: &str,
     ) -> Result<AuthTokens> {
-        println!("🔄 Exchanging authorization code for tokens...");
+        println!("🔄 Exchanging authorization code for ChatGPT tokens...");
 
         let client = reqwest::Client::new();
         let mut form_params = HashMap::new();
@@ -596,9 +606,8 @@ impl AuthManager {
         form_params.insert("code_verifier", code_verifier);
 
         let response = client
-            .post(OPENAI_TOKEN_URL)
+            .post(CHATGPT_TOKEN_URL)
             .form(&form_params)
-            .header("Content-Type", "application/x-www-form-urlencoded")
             .send()
             .await?;
 
@@ -609,7 +618,7 @@ impl AuthManager {
                 .await
                 .unwrap_or_else(|_| "Unknown error".to_string());
             return Err(anyhow!(
-                "Token exchange failed: {} - {}",
+                "ChatGPT token exchange failed: {} - {}",
                 status,
                 error_text
             ));
@@ -617,6 +626,9 @@ impl AuthManager {
 
         let token_response: TokenResponse = response.json().await?;
 
+        // Extract account ID from ID token
+        let account_id = Self::extract_account_id_from_id_token(&token_response.id_token)?;
+        
         let expires_at = if let Some(expires_in) = token_response.expires_in {
             Utc::now() + Duration::seconds(expires_in as i64)
         } else {
@@ -625,10 +637,83 @@ impl AuthManager {
 
         Ok(AuthTokens {
             access_token: token_response.access_token,
+            id_token: token_response.id_token,
             refresh_token: token_response.refresh_token.unwrap_or_default(),
             expires_at,
             token_type: token_response.token_type,
+            account_id,
         })
+    }
+
+    /// Extract chatgpt_account_id from JWT ID token
+    fn extract_account_id_from_id_token(id_token: &str) -> Result<String> {
+        // Decode JWT without verification (we trust the source since it came from OAuth)
+        let header = decode_header(id_token)
+            .map_err(|e| anyhow!("Failed to decode JWT header: {}", e))?;
+
+        // Use unsafe decode since we're just extracting claims
+        let mut validation = Validation::new(Algorithm::RS256);
+        validation.insecure_disable_signature_validation();
+        validation.validate_aud = false; // Disable audience validation
+        validation.validate_exp = false; // Disable expiration validation
+        validation.validate_nbf = false; // Disable not-before validation
+        
+        let token_data = decode::<Value>(
+            id_token,
+            &DecodingKey::from_secret(&[]), // Empty key since verification is disabled
+            &validation,
+        )
+        .map_err(|e| anyhow!("Failed to decode JWT: {}", e))?;
+
+        // Extract chatgpt_account_id from auth claims
+        let auth_claims = token_data.claims
+            .get("https://api.openai.com/auth")
+            .and_then(|v| v.as_object())
+            .ok_or_else(|| anyhow!("Missing auth claims in ID token"))?;
+
+        let account_id = auth_claims
+            .get("chatgpt_account_id")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| anyhow!("Missing chatgpt_account_id in auth claims"))?;
+
+        println!("✅ Extracted ChatGPT account ID: {}", account_id);
+        Ok(account_id.to_string())
+    }
+
+    /// Make authenticated ChatGPT API request
+    pub async fn make_chatgpt_request(&self, messages: &[serde_json::Value]) -> Result<String> {
+        let tokens = self.tokens.as_ref()
+            .ok_or_else(|| anyhow!("No authentication tokens available"))?;
+
+        let client = reqwest::Client::new();
+        let session_id = uuid::Uuid::new_v4().to_string();
+        
+        let request_body = serde_json::json!({
+            "messages": messages,
+            "model": "gpt-4", 
+            "stream": false
+        });
+
+        let response = client
+            .post(CHATGPT_API_URL)
+            .header("Authorization", format!("Bearer {}", tokens.access_token))
+            .header("Content-Type", "application/json")
+            .header("Accept", "text/event-stream")
+            .header("chatgpt-account-id", &tokens.account_id)
+            .header("OpenAI-Beta", "responses=experimental") // Critical header
+            .header("session_id", session_id)
+            .json(&request_body)
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let error_text = response.text().await.unwrap_or_default();
+            return Err(anyhow!("ChatGPT API request failed: {} - {}", status, error_text));
+        }
+
+        let response_text = response.text().await?;
+        Ok(response_text)
     }
 
     /// Start OAuth flow - returns the authorization URL for the user to visit
@@ -676,7 +761,7 @@ const SUCCESS_PAGE_SUCCESS: &str = r#"
 <!DOCTYPE html>
 <html>
 <head>
-    <title>MindLink - Authentication Successful</title>
+    <title>MindLink - ChatGPT Authentication Successful</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-align: center; padding: 50px; background: #f0f2f5; }
         .container { max-width: 400px; margin: 0 auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
@@ -688,8 +773,8 @@ const SUCCESS_PAGE_SUCCESS: &str = r#"
 </head>
 <body>
     <div class="container">
-        <div class="success">✅ Authentication Successful</div>
-        <div class="message">You have been successfully authenticated with OpenAI. You can now close this tab and return to MindLink.</div>
+        <div class="success">✅ ChatGPT Authentication Successful</div>
+        <div class="message">You have been successfully authenticated with ChatGPT. You can now close this tab and return to MindLink.</div>
         <button class="close-button" onclick="window.close()">Close This Tab</button>
     </div>
     <script>setTimeout(() => window.close(), 3000);</script>
@@ -701,7 +786,7 @@ const SUCCESS_PAGE_ERROR: &str = r#"
 <!DOCTYPE html>
 <html>
 <head>
-    <title>MindLink - Authentication Error</title>
+    <title>MindLink - ChatGPT Authentication Error</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-align: center; padding: 50px; background: #f0f2f5; }
         .container { max-width: 400px; margin: 0 auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
@@ -713,8 +798,8 @@ const SUCCESS_PAGE_ERROR: &str = r#"
 </head>
 <body>
     <div class="container">
-        <div class="error">❌ Authentication Error</div>
-        <div class="message">There was an error during authentication. Please return to MindLink and try again.</div>
+        <div class="error">❌ ChatGPT Authentication Error</div>
+        <div class="message">There was an error during ChatGPT authentication. Please return to MindLink and try again.</div>
         <button class="retry-button" onclick="window.close()">Close This Tab</button>
     </div>
 </body>

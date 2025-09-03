@@ -6,6 +6,7 @@
 export { OpenAIPlugin } from './openai'
 export { AnthropicPlugin } from './anthropic'
 export { GooglePlugin } from './google'
+export { OllamaPlugin } from './ollama'
 
 // Re-export types and base classes for convenience
 export { BaseProviderPlugin } from '../base-plugin'

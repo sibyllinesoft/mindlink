@@ -13,6 +13,11 @@ export interface ProviderConnectionInfo {
   lastUsed?: string
   tokensUsed?: number
   requestsToday?: number
+  // Ollama-specific fields
+  modelCount?: number
+  modelSize?: string
+  modelParams?: string
+  endpoint?: string
 }
 
 export interface ProviderStatus {
@@ -42,6 +47,9 @@ export interface ProviderPlugin {
   // OAuth configuration
   readonly oauthConfig?: OAuthConfig
   readonly authCommand: string // CLI command to trigger OAuth
+  
+  // Configuration support
+  readonly supportsConfiguration?: boolean
   
   // Core plugin methods
   initialize(): Promise<void>
